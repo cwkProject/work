@@ -30,20 +30,24 @@ Future<com.Response> request(String tag, com.Options options) async {
           options: dioOptions,
           onProgress: options.onProgress);
     } else if (options.method == com.HttpMethod.upload) {
-      options.params.forEach((key, value) {
+      onConvert(value) {
+        if (value is File) {
+          value = com.UploadFileInfo(value.path);
+        }
+
         if (value is com.UploadFileInfo) {
-          options.params[key] = dio.UploadFileInfo(
-              File(value.filePath), value.fileName,
+          return dio.UploadFileInfo(File(value.filePath), value.fileName,
               contentType: ContentType.parse(value.mimeType));
-        } else if (value is List) {
-          value.map((item) {
-            if (item is com.UploadFileInfo) {
-              return dio.UploadFileInfo(File(item.filePath), item.fileName,
-                  contentType: ContentType.parse(item.mimeType));
-            } else {
-              return item;
-            }
-          });
+        }
+
+        return value;
+      }
+
+      options.params.forEach((key, value) {
+        if (value is List) {
+          value.map(onConvert);
+        } else {
+          options.params[key] = onConvert(value);
         }
       });
 

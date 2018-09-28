@@ -185,6 +185,9 @@ class UploadFileInfo {
 
   /// 要上传的文件mime类型
   String mimeType;
+
+  @override
+  String toString() => "UploadFileInfo:'$filePath'";
 }
 
 /// 响应数据格式
@@ -216,7 +219,9 @@ enum HttpMethod {
   /// head请求
   head,
 
-  /// 上传（post multipart/form-data 包装）
+  /// 上传
+  ///
+  /// （post 'multipart/form-data'包装），参数中的文件需要用[File]或[UploadFileInfo]类型包装，支持文件列表
   upload,
 
   /// 下载（get包装）

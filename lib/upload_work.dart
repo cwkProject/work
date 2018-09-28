@@ -2,6 +2,7 @@
 // Version 1.0 2018/9/26
 // Since 1.0 2018/9/26
 import 'package:work/work.dart';
+import 'dart:io';
 
 class UploadWork extends SimpleWork<String> {
   @override
