@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_work/contact_work.dart';
 import 'package:flutter_work/download_work.dart';
 import 'package:flutter_work/login_work.dart';
+import 'package:flutter_work/topic_work.dart';
 import 'package:flutter_work/upload_work.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -83,6 +85,14 @@ class _MyHomePageState extends State<MyHomePage> {
     print("upload end");
   }
 
+  _contact() async {
+    ContactWork().start();
+  }
+
+  _topic() async {
+    TopicWork().start();
+  }
+
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -134,7 +144,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       floatingActionButton: new FloatingActionButton(
-        onPressed: _incrementCounter,
+        onPressed: _topic,
         tooltip: 'Increment',
         child: new Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.

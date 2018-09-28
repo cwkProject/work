@@ -14,7 +14,7 @@ packages:
       name: dio
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "1.0.5"
+    version: "1.0.6"
   meta:
     dependency: "direct main"
     description:

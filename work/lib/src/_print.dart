@@ -4,7 +4,7 @@
 import 'work_config.dart';
 
 /// 每次打印的最大长度
-const _logBufferSize = 1024 * 3;
+const _logBufferSize = 1000;
 
 /// 输出日志
 ///
@@ -16,7 +16,7 @@ void log(String tag, String message, [Object data]) {
 
   String finalMessage;
   if (data != null) {
-    finalMessage = message + " " + data.toString();
+    finalMessage = message + " $data";
   } else {
     finalMessage = message;
   }
@@ -24,16 +24,37 @@ void log(String tag, String message, [Object data]) {
   if (finalMessage.length <= _logBufferSize) {
     print(finalMessage);
   } else {
-    final it = _chunked(finalMessage).iterator;
-    while (it.moveNext()) {
-      print(it.current);
+    for (var it in _wrap(finalMessage)) {
+      print(it);
     }
+  }
+}
+
+/// 按换行父切割字符串为若干组
+///
+/// [src]原字符串
+Iterable<String> _wrap(String src) sync* {
+  final buffer = StringBuffer();
+
+  for (var line in src.split('\n')) {
+    for (var part in _chunked(line)) {
+      if (buffer.length + part.length > _logBufferSize) {
+        yield buffer.toString();
+        buffer.clear();
+      }
+
+      buffer..write(part)..write('\n');
+    }
+  }
+
+  if (buffer.length > 0) {
+    yield buffer.toString();
   }
 }
 
 /// 按照指定大小将字符串截取成一组子字符串
 ///
-/// [src]原字符串，[size]截取的大小
+/// [src]原字符串
 Iterable<String> _chunked(String src) sync* {
   final length = src.length;
 
@@ -42,6 +63,7 @@ Iterable<String> _chunked(String src) sync* {
     final end = index + _logBufferSize;
     final coercedEnd = end > length ? length : end;
     yield src.substring(index, coercedEnd);
-    index += _logBufferSize;
+
+    index = coercedEnd;
   }
 }

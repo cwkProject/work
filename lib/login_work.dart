@@ -3,10 +3,7 @@
 // Since 1.0 2018/9/26
 import 'package:work/work.dart';
 
-class LoginWork extends SimpleWork<Null> {
-  @override
-  Null onExtractResult(resultData) => null;
-
+class LoginWork extends SimpleWork {
   @override
   void onFillParams(Map<String, dynamic> data, List params) {
     data
@@ -21,4 +18,7 @@ class LoginWork extends SimpleWork<Null> {
 
   @override
   HttpMethod get httpMethod => HttpMethod.post;
+
+  @override
+  onExtractResult(resultData) => null;
 }
