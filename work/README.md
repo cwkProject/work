@@ -2,7 +2,7 @@
 
 [![pub package](https://img.shields.io/pub/v/work.svg)](https://pub.dartlang.org/packages/work)
 
-* 封装http业务接口协议，提供有限的扩展功能，隔离http底层实现方法，与公司http规范紧密结合，规范团队成员接口编写和使用方式。
+* 封装http业务接口协议，提供有限的扩展功能，隔离http底层实现方法(当前基于dio)，与公司http规范紧密结合，规范团队成员接口编写和使用方式。
 * 核心设计理念为封装http接口的请求数据和响应数据的序列化和反序列化，接口调用处不能出现任何解析http数据的代码。
 装配和解析代码应该全部由`Work`类完成，接口调用处使用一致的调用方式，无需关心http的实现方式和接口参数名称和类型，
 仅仅需要注意参数顺序和实现的`Work`类保持一致。
@@ -66,6 +66,8 @@ class LoginWork extends SimpleWork<User> {
 
 ```
 
+// 有序的参数传入，位置可选参数，[params]为任务参数列表，[retry]为重试次数，
+// [onProgress]为进度监听器，目前仅上传和下载任务有效。
 LoginWork().start(["user1","123456"]).then((data){
    // start方法返回Future<T> ，T为[SimpleWorkData]类
 
@@ -78,6 +80,12 @@ LoginWork().start(["user1","123456"]).then((data){
 });
 
 ```
+
+## 支持请求类型
+
+* `HttpMethod`中的类型，`get`、`post`、`put`、`delete`、`head`、`upload`、`download`。
+* 其中`upload` 基于`post` 的 `multipart/form-data`实现，参数中的文件需要用`File`或`UploadFileInfo`类型包装，支持文件列表
+* `download`默认使用`get`请求，且由于`download`特殊性，需要使用独立于其他`Work`的实现方式，参考`SimpleDownloadWork`。
 
 ## 其他Work生命周期函数
 
