@@ -47,9 +47,9 @@ class LoginWork extends SimpleWork<User> {
   @override
   void onFillParams(Map<String, dynamic> data, List params) {
     // 装配请求参数，data为最终要发送的参数集合，params为[Work]调用处端传入的参数列表
-    data["username"] = params[0];
-    data["password"] = params[1];
-    data["device"] = Platform.isIOS ? "Ios" : "Android";
+    data["username"] = params[0]
+      ..["password"] = params[1]
+      ..["device"] = Platform.isIOS ? "Ios" : "Android";
   }
 
   @override

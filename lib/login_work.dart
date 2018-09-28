@@ -9,9 +9,10 @@ class LoginWork extends SimpleWork<Null> {
 
   @override
   void onFillParams(Map<String, dynamic> data, List params) {
-    data["mobileNum"] = params[0];
-    data["token"] = params[1];
-    data["deviceDesc"] = "Android";
+    data
+      ..["mobileNum"] = params[0]
+      ..["token"] = params[1]
+      ..["deviceDesc"] = "Android";
   }
 
   @override
