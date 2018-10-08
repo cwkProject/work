@@ -14,12 +14,7 @@ void log(String tag, String message, [Object data]) {
     return;
   }
 
-  String finalMessage;
-  if (data != null) {
-    finalMessage = message + " $data";
-  } else {
-    finalMessage = message;
-  }
+  final finalMessage = "$tag: $message ${data ?? ""}";
 
   if (finalMessage.length <= _logBufferSize) {
     print(finalMessage);
