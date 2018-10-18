@@ -41,7 +41,7 @@
 
 class LoginWork extends SimpleWork<User> {
   @override
-  User onExtractResult(resultData) => User.fromJson(resultData);
+  User onExtractResult(resultData,SimpleWorkData<User> data) => User.fromJson(resultData);
   // 解析响应数据
 
   @override

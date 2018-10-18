@@ -60,8 +60,8 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   @override
   D onResponseSuccess(response, SimpleWorkData<D> data) =>
       response[result] == null
-          ? onDefaultResult()
-          : onExtractResult(response[result]);
+          ? onDefaultResult(data)
+          : onExtractResult(response[result], data);
 
   @override
   bool onResponseResult(response) => response["state"];
@@ -89,14 +89,16 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   /// * [resultData]为协议中的[result]标签下的数据
   /// * 当请求成功且返回结果中存在[result]标签且不为null时被调用
   /// * 返回装配后的本地数据对象
+  /// * [data]为将要返回的数据包装类，包含有传入的参数[data.params]
   @protected
-  D onExtractResult(resultData);
+  D onExtractResult(resultData, SimpleWorkData<D> data);
 
   /// 生成响应成功的默认结果数据
   ///
-  /// 当请求成功且返回结果不存在[result]标签或值为null时被调用，默认实现为null
+  /// * 当请求成功且返回结果不存在[result]标签或值为null时被调用，默认实现为null
+  /// * [data]为将要返回的数据包装类，包含有传入的参数[data.params]
   @protected
-  D onDefaultResult() => null;
+  D onDefaultResult(SimpleWorkData<D> data) => null;
 }
 
 /// 简化的下载专用[Work]类
