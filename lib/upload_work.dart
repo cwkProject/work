@@ -6,9 +6,6 @@ import 'dart:io';
 
 class UploadWork extends SimpleWork<String> {
   @override
-  String onExtractResult(resultData) => resultData;
-
-  @override
   String onUrl(List params) => "https://sdk.efaceboard"
       ".cn:8443/FileServer/upload/uploadHeadPic";
 
@@ -20,4 +17,7 @@ class UploadWork extends SimpleWork<String> {
 
   @override
   HttpMethod get httpMethod => HttpMethod.upload;
+
+  @override
+  String onExtractResult(resultData, SimpleWorkData<String> data) => resultData;
 }

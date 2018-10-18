@@ -6,11 +6,6 @@ import 'package:work/work.dart';
 class TopicWork extends SimpleWork<Null>{
 
   @override
-  Null onExtractResult(resultData) {
-
-  }
-
-  @override
   String onUrl(List params) => "https://office.efaceboard"
       ".cn:4443/MeetingServer/topic/getList";
 
@@ -21,4 +16,9 @@ class TopicWork extends SimpleWork<Null>{
 
   @override
   HttpMethod get httpMethod => HttpMethod.post;
+
+  @override
+  Null onExtractResult(resultData, SimpleWorkData<Null> data) {
+
+  }
 }

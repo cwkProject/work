@@ -20,5 +20,7 @@ class LoginWork extends SimpleWork {
   HttpMethod get httpMethod => HttpMethod.post;
 
   @override
-  onExtractResult(resultData) => null;
+  onExtractResult(resultData, SimpleWorkData data) {
+
+  }
 }

@@ -6,7 +6,7 @@ import 'package:work/work.dart';
 class ContactWork extends SimpleWork<Null>{
 
   @override
-  Null onExtractResult(resultData) {
+  Null onExtractResult(resultData,data) {
   }
 
   @override
