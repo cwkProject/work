@@ -32,6 +32,8 @@ class Communication {
 
     log(tag, "http", options);
 
+    _onNullSafe(options);
+
     Response response;
     for (int i = 0; i <= options.retry; i++) {
       if (i > 0) {
@@ -56,6 +58,13 @@ class Communication {
     }
 
     return response;
+  }
+
+  /// 处理空安全，目前不去除子结构的null
+  void _onNullSafe(Options options) {
+    if (options.ignoreNull) {
+      options.params.removeWhere((key, value) => value == null);
+    }
   }
 }
 
@@ -106,6 +115,9 @@ class Options {
 
   /// 用于取消本次请求的工具，由系统管理，无法被覆盖
   CancelToken cancelToken;
+
+  /// 忽略值为null的参数，即不会被发送
+  bool ignoreNull = true;
 
   @override
   String toString() => '''request 

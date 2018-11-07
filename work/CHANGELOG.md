@@ -1,3 +1,7 @@
+## [0.1.4] - 2018/11/7
+
+* 增加请求参数忽略null值的处理
+
 ## [0.1.3] - 2018/10/18
 
 * 修复`SimpleWork`中`onExtractResult`，`onDefaultResult`丢失`data`参数的问题
