@@ -30,9 +30,9 @@ class Communication {
       return Response();
     }
 
-    log(tag, "http", options);
-
     _onNullSafe(options);
+
+    log(tag, "http", options);
 
     Response response;
     for (int i = 0; i <= options.retry; i++) {
