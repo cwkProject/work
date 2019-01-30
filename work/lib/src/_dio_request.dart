@@ -29,40 +29,18 @@ Future<com.Response> request(String tag, com.Options options) async {
           cancelToken: options.cancelToken.data,
           options: dioOptions,
           onProgress: options.onProgress);
-    } else if (options.method == com.HttpMethod.upload) {
-      onConvert(value) {
-        if (value is File) {
-          value = com.UploadFileInfo(value.path);
-        }
-
-        if (value is com.UploadFileInfo) {
-          return dio.UploadFileInfo(File(value.filePath), value.fileName,
-              contentType: ContentType.parse(value.mimeType));
-        }
-
-        return value;
-      }
-
-      options.params.forEach((key, value) {
-        if (value is List) {
-          value.map(onConvert);
-        } else {
-          options.params[key] = onConvert(value);
-        }
-      });
-
-      dio.FormData formData = dio.FormData.from(options.params);
-
-      dioResponse = await work.dio.post(options.url,
-          data: formData,
-          cancelToken: options.cancelToken.data,
-          options: dioOptions);
     } else {
+      final params = options.method == com.HttpMethod.upload
+          ? _onConvertToDio(options.params)
+          : options.params;
+
       dioResponse = await work.dio.request(options.url,
-          data: options.params,
+          data: params,
           cancelToken: options.cancelToken.data,
-          options: dioOptions);
+          options: dioOptions,
+          onUploadProgress: options.onProgress);
     }
+
     success = true;
   } on dio.DioError catch (e) {
     log(tag, "http error", e.type);
@@ -74,6 +52,36 @@ Future<com.Response> request(String tag, com.Options options) async {
   }
 
   return _onParseResponse(tag, success, dioResponse);
+}
+
+/// 用于[com.HttpMethod.upload]请求类型的数据转换
+///
+/// [src]原始参数，返回处理后的符合dio接口的参数
+dio.FormData _onConvertToDio(Map<String, dynamic> src) {
+  onConvert(value) {
+    if (value is File) {
+      value = com.UploadFileInfo(value.path);
+    }
+
+    if (value is com.UploadFileInfo) {
+      return dio.UploadFileInfo(File(value.filePath), value.fileName,
+          contentType: ContentType.parse(value.mimeType));
+    }
+
+    return value;
+  }
+
+  final params = Map<String, dynamic>();
+
+  src.forEach((key, value) {
+    if (value is List) {
+      params[key] = value.map(onConvert).toList();
+    } else {
+      params[key] = onConvert(value);
+    }
+  });
+
+  return dio.FormData.from(params);
 }
 
 /// 生成dio专用配置

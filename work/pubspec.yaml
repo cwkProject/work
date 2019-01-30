@@ -1,6 +1,6 @@
 name: work
 description: 封装http业务接口
-version: 0.1.6
+version: 0.1.7
 author: 超悟空 <cwk39251474@gmail.com>
 homepage: https://github.com/cwkProject/work/tree/master/work
 publish_to: https://pub.dartlang.org
@@ -9,8 +9,8 @@ environment:
   sdk: ">=2.0.0-dev.68.0 <3.0.0"
 
 dependencies:
-  meta: ^1.1.6
-  dio: ^1.0.6
+  meta: ^1.1.7
+  dio: ^1.0.14
   mime: ^0.9.6+2
 
 dev_dependencies:

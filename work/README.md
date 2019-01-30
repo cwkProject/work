@@ -10,7 +10,7 @@
 优点是规范团队接口编写方式，统一项目http接口代码风格。
 
 ## Usage
-* 添加 `work` 到 [dependency in your pubspec.yaml file](https://flutter.io/platform-plugins/).
+* [添加 `work` 到 pubspec.yaml 文件](https://flutter.io/platform-plugins/).
 * `import 'package:work/work.dart';`
 
 ## 实现公司http规范基类
@@ -67,7 +67,7 @@ class LoginWork extends SimpleWork<User> {
 ```
 
 // 有序的参数传入，位置可选参数，[params]为任务参数列表，[retry]为重试次数，
-// [onProgress]为进度监听器，目前仅上传和下载任务有效。
+// [onProgress]为进度监听器，在[HttpMethod.download]请求中为下载进度，在其他类型请求中为上传/发送进度。
 LoginWork().start(["user1","123456"]).then((data){
    // start方法返回Future<T> ，T为[SimpleWorkData]类
 
