@@ -11,8 +11,7 @@ class TestWork extends SimpleWork<Null> {
   Null onExtractResult(resultData, SimpleWorkData<Null> data) {}
 
   @override
-  String onUrl(List params) => "http://192.168.0"
-      ".20:8080/MeetingServer/test/postParam";
+  String onUrl(List params) => "http://192.168.0.20:8080/MeetingServer/test/postParam";
 
   @override
   void onFillParams(Map<String, dynamic> data, List params) {
