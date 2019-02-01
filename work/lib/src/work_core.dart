@@ -85,7 +85,8 @@ abstract class Work<D, T extends WorkData<D>> {
   /// 启动任务
   ///
   /// * [params]为任务参数列表，[retry]为重试次数。
-  /// * [onProgress]为进度监听器，在[HttpMethod.download]请求中为下载进度，在其他类型请求中为上传/发送进度。
+  /// * [onProgress]为进度监听器，在[HttpMethod.get]中无效，
+  /// 在[HttpMethod.download]请求中为下载进度，在其他类型请求中为上传/发送进度。
   /// * 同一个[Work]可以多次启动任务，多次启动的任务会顺序执行。
   Future<T> start(
       [List params = const [], int retry = 0, OnProgress onProgress]) async {

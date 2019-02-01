@@ -83,6 +83,7 @@ class Options {
 
   /// 进度监听器
   ///
+  /// 在[HttpMethod.get]中无效，
   /// 在[HttpMethod.download]请求中为下载进度，在其他类型请求中为上传/发送进度
   OnProgress onProgress;
 

@@ -22,23 +22,41 @@ Future<com.Response> request(String tag, com.Options options) async {
   bool success = false;
 
   try {
-    if (options.method == com.HttpMethod.download) {
-      log(tag, "download path:${options.downloadPath}");
-      dioResponse = await work.dio.download(options.url, options.downloadPath,
+    switch (options.method) {
+      case com.HttpMethod.download:
+        log(tag, "download path:${options.downloadPath}");
+        dioResponse = await work.dio.download(options.url, options.downloadPath,
+            data: options.params,
+            cancelToken: options.cancelToken.data,
+            options: dioOptions,
+            onProgress: options.onProgress);
+        break;
+      case com.HttpMethod.get:
+        dioResponse = await work.dio.get(
+          options.url,
+          queryParameters: options.params,
+          cancelToken: options.cancelToken.data,
+          options: dioOptions,
+        );
+        break;
+      case com.HttpMethod.upload:
+        dioResponse = await work.dio.request(
+          options.url,
+          data: _onConvertToDio(options.params),
+          cancelToken: options.cancelToken.data,
+          options: dioOptions,
+          onUploadProgress: options.onProgress,
+        );
+        break;
+      default:
+        dioResponse = await work.dio.request(
+          options.url,
           data: options.params,
           cancelToken: options.cancelToken.data,
           options: dioOptions,
-          onProgress: options.onProgress);
-    } else {
-      dioResponse = await work.dio.request(
-        options.url,
-        data: options.method == com.HttpMethod.upload
-            ? _onConvertToDio(options.params)
-            : options.params,
-        cancelToken: options.cancelToken.data,
-        options: dioOptions,
-        onUploadProgress: options.onProgress,
-      );
+          onUploadProgress: options.onProgress,
+        );
+        break;
     }
 
     success = true;
