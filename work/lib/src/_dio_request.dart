@@ -30,15 +30,15 @@ Future<com.Response> request(String tag, com.Options options) async {
           options: dioOptions,
           onProgress: options.onProgress);
     } else {
-      final params = options.method == com.HttpMethod.upload
-          ? _onConvertToDio(options.params)
-          : options.params;
-
-      dioResponse = await work.dio.request(options.url,
-          data: params,
-          cancelToken: options.cancelToken.data,
-          options: dioOptions,
-          onUploadProgress: options.onProgress);
+      dioResponse = await work.dio.request(
+        options.url,
+        data: options.method == com.HttpMethod.upload
+            ? _onConvertToDio(options.params)
+            : options.params,
+        cancelToken: options.cancelToken.data,
+        options: dioOptions,
+        onUploadProgress: options.onProgress,
+      );
     }
 
     success = true;
@@ -115,13 +115,13 @@ dio.Options _onConfigOptions(String tag, com.Options options) {
   if (options.responseType != null) {
     switch (options.responseType) {
       case com.ResponseType.json:
-        dioOptions.responseType = dio.ResponseType.JSON;
+        dioOptions.responseType = dio.ResponseType.json;
         break;
       case com.ResponseType.stream:
-        dioOptions.responseType = dio.ResponseType.STREAM;
+        dioOptions.responseType = dio.ResponseType.stream;
         break;
       case com.ResponseType.plain:
-        dioOptions.responseType = dio.ResponseType.PLAIN;
+        dioOptions.responseType = dio.ResponseType.plain;
         break;
     }
   }

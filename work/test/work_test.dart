@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:work/work.dart';
 
 void main() async {
@@ -11,18 +9,13 @@ class TestWork extends SimpleWork<Null> {
   Null onExtractResult(resultData, SimpleWorkData<Null> data) {}
 
   @override
-  String onUrl(List params) => "http://192.168.0.20:8080/MeetingServer/test/postParam";
+  String onUrl(List params) => "http://192.168.0.31:8070/MeetingServer/user/getMobileVerifyCode";
 
   @override
   void onFillParams(Map<String, dynamic> data, List params) {
-    data["members"] = ["aaa"];
+    data["mobileNum"] = "18612345678";
   }
 
   @override
   HttpMethod get httpMethod => HttpMethod.post;
-
-  @override
-  void onConfigOptions(Options options, List params) {
-    options.contentType = ContentType.json;
-  }
 }
