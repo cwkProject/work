@@ -29,7 +29,7 @@ Future<com.Response> request(String tag, com.Options options) async {
             data: options.params,
             cancelToken: options.cancelToken.data,
             options: dioOptions,
-            onProgress: options.onProgress);
+            onReceiveProgress: options.onProgress);
         break;
       case com.HttpMethod.get:
         final params = options.params.map<String, dynamic>((key, value) =>
@@ -48,7 +48,7 @@ Future<com.Response> request(String tag, com.Options options) async {
           data: _onConvertToDio(options.params),
           cancelToken: options.cancelToken.data,
           options: dioOptions,
-          onUploadProgress: options.onProgress,
+          onSendProgress: options.onProgress,
         );
         break;
       default:
@@ -57,7 +57,7 @@ Future<com.Response> request(String tag, com.Options options) async {
           data: options.params,
           cancelToken: options.cancelToken.data,
           options: dioOptions,
-          onUploadProgress: options.onProgress,
+          onSendProgress: options.onProgress,
         );
         break;
     }
