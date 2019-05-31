@@ -189,7 +189,7 @@ abstract class Work<D, T extends WorkData<D>> {
       ..onProgress = onProgress
       ..method = httpMethod
       ..headers = onHeaders(params)
-      ..params = data
+      ..params = onPostFillParams(data, params) ?? data
       ..url = onUrl(params);
 
     onConfigOptions(options, params);
@@ -284,8 +284,10 @@ abstract class Work<D, T extends WorkData<D>> {
   ///
   /// * 适合对参数进行签名（通过项目中实现的定制[Work]基类完成）
   /// * [data]为请求参数集（http请求要发送的参数），[params]为任务传入的参数列表
+  /// * 如果需要使用其他数据类型作为请求参数，请返回新的数据集合对象，支持[Map]，[List]，[String]([ResponseType.plain])
+  /// 不返回参数或返回null则继续使用[data]作为请求参数
   @protected
-  void onPostFillParams(Map<String, dynamic> data, List params) {}
+  dynamic onPostFillParams(Map<String, dynamic> data, List params) {}
 
   /// 创建并填充请求头
   ///

@@ -30,8 +30,6 @@ class Communication {
       return Response();
     }
 
-    _onNullSafe(options);
-
     log(tag, "http", options);
 
     Response response;
@@ -59,13 +57,6 @@ class Communication {
 
     return response;
   }
-
-  /// 处理空安全，目前不去除子结构的null
-  void _onNullSafe(Options options) {
-    if (options.ignoreNull) {
-      options.params.removeWhere((key, value) => value == null);
-    }
-  }
 }
 
 /// 请求配置信息
@@ -91,7 +82,7 @@ class Options {
   Map<String, dynamic> headers;
 
   /// 请求参数
-  Map<String, dynamic> params;
+  dynamic params;
 
   /// 连接服务器超时时间，单位毫秒
   int connectTimeout;
