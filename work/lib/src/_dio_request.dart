@@ -32,12 +32,9 @@ Future<com.Response> request(String tag, com.Options options) async {
             onReceiveProgress: options.onProgress);
         break;
       case com.HttpMethod.get:
-        final params = options.params.map<String, dynamic>((key, value) =>
-            MapEntry(key, value is Iterable<String> ? value : "$value"));
-
         dioResponse = await work.dio.get(
           options.url,
-          queryParameters: params,
+          queryParameters: options.params,
           cancelToken: options.cancelToken.data,
           options: dioOptions,
         );

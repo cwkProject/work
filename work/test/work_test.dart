@@ -9,13 +9,12 @@ class TestWork extends SimpleWork<Null> {
   Null onExtractResult(resultData, SimpleWorkData<Null> data) {}
 
   @override
-  String onUrl(List params) => "http://192.168.0.31:8070/MeetingServer/user/getMobileVerifyCode";
+  String onUrl(List params) => "http://192.168.0"
+      ".31:8080/Chatboard/meeting/getFileGroupId";
 
   @override
   void onFillParams(Map<String, dynamic> data, List params) {
-    data["mobileNum"] = "18612345678";
+    data["sessionId"] = "6cf09a7b-cf47-400f-a859-2671ca6b3b5e";
+    data["meetingId"] = "0518ccc93edd4da197165c1cd7198fb1";
   }
-
-  @override
-  HttpMethod get httpMethod => HttpMethod.post;
 }

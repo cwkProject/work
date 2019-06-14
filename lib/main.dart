@@ -7,6 +7,7 @@ import 'package:flutter_work/login_work.dart';
 import 'package:flutter_work/topic_work.dart';
 import 'package:flutter_work/upload_work.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:image_picker/image_picker.dart';
 
 void main() => runApp(new MyApp());
 
@@ -78,9 +79,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   _upload() async {
-    Directory tempDir = await getTemporaryDirectory();
 
-    await UploadWork().start(["${tempDir.path}/temp.png"]);
+    final file=  await ImagePicker.pickImage(source: ImageSource.gallery);
+
+    await UploadWork().start([file.path]);
 
     print("upload end");
   }
@@ -144,7 +146,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       floatingActionButton: new FloatingActionButton(
-        onPressed: _topic,
+        onPressed: _upload,
         tooltip: 'Increment',
         child: new Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.

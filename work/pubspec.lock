@@ -14,7 +14,7 @@ packages:
       name: dio
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "2.1.6"
+    version: "2.1.7"
   meta:
     dependency: "direct main"
     description:
@@ -28,6 +28,6 @@ packages:
       name: mime
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "0.9.6+2"
+    version: "0.9.6+3"
 sdks:
-  dart: ">=2.2.2 <3.0.0"
+  dart: ">=2.1.0 <3.0.0"
