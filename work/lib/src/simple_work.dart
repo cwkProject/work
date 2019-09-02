@@ -2,6 +2,8 @@
 // Version 1.0 2018/9/26
 // Since 1.0 2018/9/26
 
+import 'dart:async';
+
 import 'package:meta/meta.dart';
 import 'communication.dart';
 import 'work_core.dart';
@@ -58,10 +60,10 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   SimpleWorkData<D> onCreateWorkData() => SimpleWorkData<D>();
 
   @override
-  D onResponseSuccess(response, SimpleWorkData<D> data) =>
+  Future<D> onResponseSuccess(response, SimpleWorkData<D> data) async =>
       response[result] == null
-          ? onDefaultResult(data)
-          : onExtractResult(response[result], data);
+          ? await onDefaultResult(data)
+          : await onExtractResult(response[result], data);
 
   @override
   bool onResponseResult(response) => response["state"];
@@ -91,25 +93,25 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   /// * 返回装配后的本地数据对象
   /// * [data]为将要返回的数据包装类，包含有传入的参数[data.params]
   @protected
-  D onExtractResult(resultData, SimpleWorkData<D> data);
+  FutureOr<D> onExtractResult(resultData, SimpleWorkData<D> data);
 
   /// 生成响应成功的默认结果数据
   ///
   /// * 当请求成功且返回结果不存在[result]标签或值为null时被调用，默认实现为null
   /// * [data]为将要返回的数据包装类，包含有传入的参数[data.params]
   @protected
-  D onDefaultResult(SimpleWorkData<D> data) => null;
+  FutureOr<D> onDefaultResult(SimpleWorkData<D> data) => null;
 }
 
 /// 简化的下载专用[Work]类
 ///
 /// * 适用于下载文件任务，其他类型任务请使用[SimpleWork]
-abstract class SimpleDownloadWork extends Work<Null, SimpleWorkData<Null>> {
+abstract class SimpleDownloadWork extends Work<void, SimpleWorkData<void>> {
   @override
-  SimpleWorkData<Null> onCreateWorkData() => SimpleWorkData<Null>();
+  SimpleWorkData<void> onCreateWorkData() => SimpleWorkData<void>();
 
   @override
-  Null onResponseSuccess(response, SimpleWorkData data) => null;
+  void onResponseSuccess(response, SimpleWorkData data) => null;
 
   @override
   bool onResponseResult(response) => true;

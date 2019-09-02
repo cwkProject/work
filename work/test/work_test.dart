@@ -4,13 +4,13 @@ void main() async {
   await TestWork().start();
 }
 
-class TestWork extends SimpleWork<Null> {
+class TestWork extends SimpleWork<void> {
   @override
-  Null onExtractResult(resultData, SimpleWorkData<Null> data) {}
+  void onExtractResult(resultData, SimpleWorkData<void> data) {}
 
   @override
   String onUrl(List params) => "http://192.168.0"
-      ".31:8080/Chatboard/meeting/getFileGroupId";
+      ".24:8080/Chatboard/meeting/getFileGroupId";
 
   @override
   void onFillParams(Map<String, dynamic> data, List params) {
