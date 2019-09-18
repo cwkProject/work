@@ -35,7 +35,7 @@ class Communication {
     Response response;
     for (int i = 0; i <= options.retry; i++) {
       if (i > 0) {
-        log(tag, "retry:$i");
+        log(tag, "retry ", i);
       }
       response = await http.request(tag, options);
 
@@ -95,7 +95,7 @@ class Options {
   /// 请求的Content-Type
   ///
   /// 默认值'application/x-www-form-urlencoded'
-  ContentType contentType;
+  String contentType;
 
   /// [responseType] 表示期望以那种格式(方式)接受响应数据
   ///
@@ -121,8 +121,12 @@ class Options {
 
 /// Http响应数据
 class Response {
-  Response(
-      {this.success = false, this.data, this.headers, this.statusCode = 0});
+  Response({
+    this.success = false,
+    this.data,
+    this.headers,
+    this.statusCode = 0,
+  });
 
   /// 响应数据
   ///
@@ -130,7 +134,7 @@ class Response {
   dynamic data;
 
   /// 响应头信息
-  HttpHeaders headers;
+  Map<String, List<String>> headers;
 
   /// 响应状态码
   int statusCode;
@@ -138,20 +142,29 @@ class Response {
   /// 请求成功失败标志
   bool success;
 
+  /// 将头信息转换成文本输出
+  String get _headersToString {
+    var stringBuffer = StringBuffer();
+    headers?.forEach((key, value) {
+      value.forEach((e) => stringBuffer.writeln("$key: $e"));
+    });
+    return stringBuffer.toString();
+  }
+
   @override
   String toString() => '''response 
-success: $success; code: $statusCode;
-headers: $headers;
-body: $data''';
+                        success: $success; code: $statusCode;
+                        headers: $_headersToString;
+                        body: $data''';
 }
 
 /// 取消请求工具
 class CancelToken {
   /// 用于发射取消请求
-  final StreamController<Null> _controller = StreamController.broadcast();
+  final StreamController<void> _controller = StreamController.broadcast();
 
   /// 用于接收取消请求事件
-  Stream<Null> get stream => _controller.stream;
+  Stream<void> get stream => _controller.stream;
 
   /// 用于特定取消实现关联对象使用
   dynamic data;

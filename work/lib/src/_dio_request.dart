@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'package:http_parser/http_parser.dart';
 
 import 'package:dio/dio.dart' as dio;
 
@@ -82,8 +83,14 @@ dio.FormData _onConvertToDio(Map<String, dynamic> src) {
     }
 
     if (value is com.UploadFileInfo) {
-      return dio.UploadFileInfo(File(value.filePath), value.fileName,
-          contentType: ContentType.parse(value.mimeType));
+      final file = File(value.filePath);
+
+      return dio.MultipartFile(
+        file.openRead(),
+        file.lengthSync(),
+        filename: value.fileName,
+        contentType: MediaType.parse(value.mimeType),
+      );
     }
 
     return value;
@@ -99,7 +106,7 @@ dio.FormData _onConvertToDio(Map<String, dynamic> src) {
     }
   });
 
-  return dio.FormData.from(params);
+  return dio.FormData.fromMap(params);
 }
 
 /// 生成dio专用配置
@@ -108,9 +115,11 @@ dio.Options _onConfigOptions(String tag, com.Options options) {
 
   switch (options.method) {
     case com.HttpMethod.get:
+    case com.HttpMethod.download:
       dioOptions.method = "GET";
       break;
     case com.HttpMethod.post:
+    case com.HttpMethod.upload:
       dioOptions.method = "POST";
       break;
     case com.HttpMethod.put:
@@ -121,12 +130,6 @@ dio.Options _onConfigOptions(String tag, com.Options options) {
       break;
     case com.HttpMethod.delete:
       dioOptions.method = "DELETE";
-      break;
-    case com.HttpMethod.upload:
-      dioOptions.method = "POST";
-      break;
-    case com.HttpMethod.download:
-      dioOptions.method = "GET";
       break;
   }
 
@@ -145,7 +148,6 @@ dio.Options _onConfigOptions(String tag, com.Options options) {
   }
 
   dioOptions.contentType = options.contentType;
-  dioOptions.connectTimeout = options.connectTimeout;
   dioOptions.receiveTimeout = options.readTimeout;
   if (options.headers != null) {
     dioOptions.headers = options.headers;
@@ -175,7 +177,7 @@ com.Response _onParseResponse(
     return com.Response(
         success: success,
         statusCode: dioResponse.statusCode,
-        headers: dioResponse.headers,
+        headers: dioResponse.headers?.map,
         data: dioResponse.data);
   } else {
     return com.Response();
