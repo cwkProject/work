@@ -145,7 +145,7 @@ dio.Options _onConfigOptions(String tag, com.Options options) {
   }
 
   if (options.headers != null) {
-    dioOptions.headers = options.headers;
+    dioOptions.headers.addAll(options.headers);
   }
 
   dioOptions.contentType = options.contentType;
