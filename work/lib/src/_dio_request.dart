@@ -76,18 +76,15 @@ Future<com.Response> request(String tag, com.Options options) async {
 /// 用于[com.HttpMethod.upload]请求类型的数据转换
 ///
 /// [src]原始参数，返回处理后的符合dio接口的参数
-dio.FormData _onConvertToDio(Map<String, dynamic> src) {
-  onConvert(value) {
+Future<dio.FormData> _onConvertToDio(Map<String, dynamic> src) async {
+  onConvert(value) async {
     if (value is File) {
       value = com.UploadFileInfo(value.path);
     }
 
     if (value is com.UploadFileInfo) {
-      final file = File(value.filePath);
-
-      return dio.MultipartFile(
-        file.openRead(),
-        file.lengthSync(),
+      return dio.MultipartFile.fromFile(
+        value.filePath,
         filename: value.fileName,
         contentType: MediaType.parse(value.mimeType),
       );

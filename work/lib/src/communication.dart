@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:path/path.dart';
 
 import 'package:mime/mime.dart';
 
@@ -178,14 +179,7 @@ class CancelToken {
 /// 描述要上传的文件信息
 class UploadFileInfo {
   UploadFileInfo(this.filePath, {this.fileName, this.mimeType}) {
-    if (fileName == null) {
-      int index = filePath.lastIndexOf(RegExp(r'[\/]'));
-      if (index > 0 && index < filePath.length) {
-        fileName = filePath.substring(index + 1);
-      } else {
-        fileName = filePath;
-      }
-    }
+    fileName ??= basename(filePath);
 
     if (mimeType == null) {
       mimeType = lookupMimeType(fileName);
