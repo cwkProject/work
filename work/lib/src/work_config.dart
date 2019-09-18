@@ -12,7 +12,6 @@ Dio dio = Dio(
   BaseOptions(
     connectTimeout: 30000,
     receiveTimeout: 30000,
-    sendTimeout: 30000,
     contentType: "application/x-www-form-urlencoded",
   ),
 );
