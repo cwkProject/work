@@ -144,11 +144,13 @@ dio.Options _onConfigOptions(String tag, com.Options options) {
     }
   }
 
-  dioOptions.contentType = options.contentType;
-  dioOptions.receiveTimeout = options.readTimeout;
   if (options.headers != null) {
     dioOptions.headers = options.headers;
   }
+
+  dioOptions.contentType = options.contentType;
+  dioOptions.receiveTimeout = options.readTimeout;
+  dioOptions.sendTimeout = options.sendTimeout;
 
   if (options.cancelToken.data is! dio.CancelToken) {
     com.CancelToken cancelToken = options.cancelToken;

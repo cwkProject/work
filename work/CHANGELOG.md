@@ -1,5 +1,10 @@
 ## [0.2.6] - 2019/9/18
 
+* 修复headers赋值顺序导致的参数覆盖bug
+* `Options`增加`sendTimeout`属性
+
+## [0.2.6] - 2019/9/18
+
 * 调整实现细节以支持dio v2.2.1 的api变更，`Options.contentType`替换为String类型
 
 ## [0.2.5] - 2019/9/2

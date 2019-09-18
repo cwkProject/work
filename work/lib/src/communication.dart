@@ -88,6 +88,11 @@ class Options {
   /// 连接服务器超时时间，单位毫秒
   int connectTimeout;
 
+  ///  发送超时
+  ///
+  ///  传出流上前后两次发送数据的间隔，单位毫秒
+  int sendTimeout;
+
   ///  读取超时
   ///
   ///  响应流上前后两次接受到数据的间隔，单位毫秒
@@ -154,9 +159,9 @@ class Response {
 
   @override
   String toString() => '''response 
-                        success: $success; code: $statusCode;
-                        headers: $_headersToString;
-                        body: $data''';
+success: $success; code: $statusCode;
+headers: $_headersToString;
+body: $data''';
 }
 
 /// 取消请求工具
