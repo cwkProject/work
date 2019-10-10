@@ -211,11 +211,14 @@ enum ResponseType {
   /// json类型
   json,
 
-  /// [Stream]类型数据
+  /// [Stream<Uint8List>]类型数据
   stream,
 
   /// UTF8编码字符串
-  plain
+  plain,
+
+  /// 原始子节数组[List<int>]
+  bytes,
 }
 
 /// http请求类型

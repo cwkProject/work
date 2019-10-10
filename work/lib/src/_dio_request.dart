@@ -141,6 +141,9 @@ dio.Options _onConfigOptions(String tag, com.Options options) {
       case com.ResponseType.plain:
         dioOptions.responseType = dio.ResponseType.plain;
         break;
+      case com.ResponseType.bytes:
+        dioOptions.responseType = dio.ResponseType.bytes;
+        break;
     }
   }
 
@@ -174,10 +177,13 @@ com.Response _onParseResponse(
     String tag, bool success, dio.Response dioResponse) {
   if (dioResponse != null) {
     return com.Response(
-        success: success,
-        statusCode: dioResponse.statusCode,
-        headers: dioResponse.headers?.map,
-        data: dioResponse.data);
+      success: success,
+      statusCode: dioResponse.statusCode,
+      headers: dioResponse.headers?.map,
+      data: dioResponse.request?.responseType == dio.ResponseType.stream
+          ? dioResponse.data.stream
+          : dioResponse.data,
+    );
   } else {
     return com.Response();
   }
