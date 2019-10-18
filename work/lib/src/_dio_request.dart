@@ -43,7 +43,7 @@ Future<com.Response> request(String tag, com.Options options) async {
       case com.HttpMethod.upload:
         dioResponse = await work.dio.request(
           options.url,
-          data: _onConvertToDio(options.params),
+          data: await _onConvertToDio(options.params),
           cancelToken: options.cancelToken.data,
           options: dioOptions,
           onSendProgress: options.onProgress,
@@ -95,13 +95,15 @@ Future<dio.FormData> _onConvertToDio(Map<String, dynamic> src) async {
 
   final params = Map<String, dynamic>();
 
-  src.forEach((key, value) {
-    if (value is List) {
-      params[key] = value.map(onConvert).toList();
+  for (final entry in src.entries) {
+    if (entry.value is List) {
+      (entry.value as List);
+      params[entry.key] =
+          await Stream.fromFutures(entry.value.map(onConvert)).toList();
     } else {
-      params[key] = onConvert(value);
+      params[entry.key] = await onConvert(entry.value);
     }
-  });
+  }
 
   return dio.FormData.fromMap(params);
 }

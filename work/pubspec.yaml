@@ -1,6 +1,6 @@
 name: work
 description: 封装http业务接口
-version: 0.3.1
+version: 0.3.2
 author: 超悟空 <cwk39251474@gmail.com>
 homepage: https://github.com/cwkProject/work/tree/master/work
 publish_to: https://pub.dartlang.org
