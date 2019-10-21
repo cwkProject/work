@@ -348,6 +348,7 @@ abstract class Work<D, T extends WorkData<D>> {
         // 解析失败
         log(tag, "_onParseResponse result parse failed onParseFailed invoke");
         // 解析失败回调
+        data._success = false;
         data._message = await onParseFailed(data);
       }
     } else if (response.statusCode > 0) {
