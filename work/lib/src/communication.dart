@@ -28,7 +28,7 @@ class Communication {
     if (!options.url.startsWith(new RegExp(r"https?://"))) {
       // 地址不合法
       log(tag, "url error");
-      return Response();
+      return Response(errorType: HttpErrorType.other);
     }
 
     log(tag, "http", options);
@@ -73,16 +73,16 @@ class Options {
   /// 默认0表示不重试，实际执行1此请求，如果设置为1则至少执行一次请求，最多执行两次请求。
   int retry = 0;
 
-  /// 进度监听器
-  ///
-  /// 在[HttpMethod.get]中无效，
-  /// 在[HttpMethod.download]请求中为下载进度，在其他类型请求中为上传/发送进度
-  OnProgress onProgress;
+  /// 发送/上传进度监听器，在[HttpMethod.get]和[HttpMethod.download]中无效
+  OnProgress onSendProgress;
 
-  /// Http请求头
+  /// 接收/下载进度监听器
+  OnProgress onReceiveProgress;
+
+  /// 自定义/追加的Http请求头
   Map<String, dynamic> headers;
 
-  /// 请求参数
+  /// 最终用于发送的请求参数
   dynamic params;
 
   /// 连接服务器超时时间，单位毫秒
@@ -132,6 +132,8 @@ class Response {
     this.data,
     this.headers,
     this.statusCode = 0,
+    this.errorType,
+    this.receiveByteCount = 0,
   });
 
   /// 响应数据
@@ -147,6 +149,12 @@ class Response {
 
   /// 请求成功失败标志
   bool success;
+
+  /// 异常类型，为空表示无异常
+  HttpErrorType errorType;
+
+  /// 总接收子节数
+  int receiveByteCount;
 
   /// 将头信息转换成文本输出
   String get _headersToString {
@@ -245,4 +253,25 @@ enum HttpMethod {
 
   /// 下载（get包装）
   download,
+}
+
+/// http请求的异常类型
+enum HttpErrorType {
+  /// 连接超时
+  connectTimeout,
+
+  /// 发送超时
+  sendTimeout,
+
+  /// 接收超时
+  receiveTimeout,
+
+  /// 服务器返回错误，4xx,5xx
+  response,
+
+  /// 用户取消请求
+  cancel,
+
+  /// 一些其他异常，可能是网络库或其他数据处理异常
+  other,
 }

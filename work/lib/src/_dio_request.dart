@@ -3,6 +3,7 @@
 // Since 1.0 2018/9/25
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:http_parser/http_parser.dart';
 
@@ -22,15 +23,35 @@ Future<com.Response> request(String tag, com.Options options) async {
 
   bool success = false;
 
+  com.HttpErrorType errorType;
+
+  // 总接收子节数
+  int receiveByteCount = 0;
+
+  // 结果解析器
+  dio.ResponseDecoder decoder = (responseBytes, options, responseBody) {
+    receiveByteCount = responseBytes.length;
+    return utf8.decode(responseBytes, allowMalformed: true);
+  };
+
+  dioOptions.responseDecoder = decoder;
+
   try {
     switch (options.method) {
       case com.HttpMethod.download:
         log(tag, "download path:${options.downloadPath}");
+
+        // 接收进度代理
+        onReceiveProgress(int receive, int total) {
+          receiveByteCount = receive;
+          options.onReceiveProgress?.call(receive, total);
+        }
+
         dioResponse = await work.dio.download(options.url, options.downloadPath,
             data: options.params,
             cancelToken: options.cancelToken.data,
             options: dioOptions,
-            onReceiveProgress: options.onProgress);
+            onReceiveProgress: onReceiveProgress);
         break;
       case com.HttpMethod.get:
         dioResponse = await work.dio.get(
@@ -38,6 +59,7 @@ Future<com.Response> request(String tag, com.Options options) async {
           queryParameters: options.params,
           cancelToken: options.cancelToken.data,
           options: dioOptions,
+          onReceiveProgress: options.onReceiveProgress,
         );
         break;
       case com.HttpMethod.upload:
@@ -46,7 +68,8 @@ Future<com.Response> request(String tag, com.Options options) async {
           data: await _onConvertToDio(options.params),
           cancelToken: options.cancelToken.data,
           options: dioOptions,
-          onSendProgress: options.onProgress,
+          onSendProgress: options.onSendProgress,
+          onReceiveProgress: options.onReceiveProgress,
         );
         break;
       default:
@@ -55,7 +78,8 @@ Future<com.Response> request(String tag, com.Options options) async {
           data: options.params,
           cancelToken: options.cancelToken.data,
           options: dioOptions,
-          onSendProgress: options.onProgress,
+          onSendProgress: options.onSendProgress,
+          onReceiveProgress: options.onReceiveProgress,
         );
         break;
     }
@@ -66,11 +90,44 @@ Future<com.Response> request(String tag, com.Options options) async {
 
     dioResponse = e.response;
     success = false;
+    errorType = _onConvertErrorType(e.type);
   } catch (e) {
     log(tag, "http other error", e);
+    errorType = com.HttpErrorType.other;
   }
 
-  return _onParseResponse(tag, success, dioResponse);
+  if (dioResponse != null) {
+    return com.Response(
+      success: success,
+      statusCode: dioResponse.statusCode,
+      headers: dioResponse.headers?.map,
+      data: dioResponse.request?.responseType == dio.ResponseType.stream
+          ? dioResponse.data.stream
+          : dioResponse.data,
+      errorType: errorType,
+      receiveByteCount: receiveByteCount,
+    );
+  } else {
+    return com.Response(errorType: errorType);
+  }
+}
+
+/// 转换dio异常类型到work库异常类型
+com.HttpErrorType _onConvertErrorType(dio.DioErrorType type) {
+  switch (type) {
+    case dio.DioErrorType.CONNECT_TIMEOUT:
+      return com.HttpErrorType.connectTimeout;
+    case dio.DioErrorType.SEND_TIMEOUT:
+      return com.HttpErrorType.sendTimeout;
+    case dio.DioErrorType.RECEIVE_TIMEOUT:
+      return com.HttpErrorType.receiveTimeout;
+    case dio.DioErrorType.RESPONSE:
+      return com.HttpErrorType.response;
+    case dio.DioErrorType.CANCEL:
+      return com.HttpErrorType.cancel;
+    default:
+      return com.HttpErrorType.other;
+  }
 }
 
 /// 用于[com.HttpMethod.upload]请求类型的数据转换
@@ -172,21 +229,4 @@ dio.Options _onConfigOptions(String tag, com.Options options) {
   }
 
   return dioOptions;
-}
-
-/// 处理dio Response为work的Response
-com.Response _onParseResponse(
-    String tag, bool success, dio.Response dioResponse) {
-  if (dioResponse != null) {
-    return com.Response(
-      success: success,
-      statusCode: dioResponse.statusCode,
-      headers: dioResponse.headers?.map,
-      data: dioResponse.request?.responseType == dio.ResponseType.stream
-          ? dioResponse.data.stream
-          : dioResponse.data,
-    );
-  } else {
-    return com.Response();
-  }
 }

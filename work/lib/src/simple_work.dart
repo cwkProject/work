@@ -59,32 +59,36 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   @override
   SimpleWorkData<D> onCreateWorkData() => SimpleWorkData<D>();
 
-  @override
-  Future<D> onResponseSuccess(response, SimpleWorkData<D> data) async =>
-      response[result] == null
-          ? await onDefaultResult(data)
-          : await onExtractResult(response[result], data);
+  FutureOr<bool> onCheckResponse(SimpleWorkData<D> data) =>
+      data.response.data != null;
 
   @override
-  bool onResponseResult(response) => response["state"];
+  FutureOr<D> onResponseSuccess(SimpleWorkData<D> data) async =>
+      data.response.data[result] == null
+          ? await onDefaultResult(data)
+          : await onExtractResult(data.response.data[result], data);
+
+  @override
+  FutureOr<bool> onResponseResult(SimpleWorkData<D> data) =>
+      data.response.data["state"];
 
   @mustCallSuper
   @override
-  D onRequestFailed(response, SimpleWorkData<D> data) {
-    if (response["errorCode"] != null) {
-      data._errorCode = response["errorCode"];
+  FutureOr<D> onRequestFailed(SimpleWorkData<D> data) {
+    if (data.response.data["errorCode"] != null) {
+      data._errorCode = data.response.data["errorCode"];
     }
 
-    return super.onRequestFailed(response, data);
+    return super.onRequestFailed(data);
   }
 
   @override
-  String onRequestSuccessMessage(response, SimpleWorkData<D> data) =>
-      response["message"];
+  FutureOr<String> onRequestSuccessMessage(SimpleWorkData<D> data) =>
+      data.response.data["message"];
 
   @override
-  String onRequestFailedMessage(response, SimpleWorkData<D> data) =>
-      response["message"];
+  FutureOr<String> onRequestFailedMessage(SimpleWorkData<D> data) =>
+      data.response.data["message"];
 
   /// 生成响应成功的结果数据
   ///
@@ -111,22 +115,22 @@ abstract class SimpleDownloadWork extends Work<void, SimpleWorkData<void>> {
   SimpleWorkData<void> onCreateWorkData() => SimpleWorkData<void>();
 
   @override
-  void onResponseSuccess(response, SimpleWorkData data) => null;
+  FutureOr<void> onResponseSuccess(SimpleWorkData<void> data) => null;
 
   @override
-  bool onResponseResult(response) => true;
+  FutureOr<bool> onResponseResult(SimpleWorkData<void> data) => true;
 
   @override
   HttpMethod get httpMethod => HttpMethod.download;
 
   @mustCallSuper
   @override
-  void onConfigOptions(Options options, List params) {
+  FutureOr<void> onConfigOptions(Options options, List params) {
     options.downloadPath = onDownloadPath(params);
   }
 
   /// 设置下载文件路径
   ///
   /// [params]为任务传入参数，返回下载文件要保存的位置路径
-  String onDownloadPath(List params);
+  FutureOr<String> onDownloadPath(List params);
 }

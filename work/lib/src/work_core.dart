@@ -20,9 +20,6 @@ class WorkData<T> {
   /// 服务响应消息
   String _message;
 
-  /// http响应码
-  int _code = 0;
-
   /// 任务传入参数列表
   List _params;
 
@@ -32,14 +29,25 @@ class WorkData<T> {
   /// 任务取消标志
   bool _cancel = false;
 
+  /// 用于网络请求使用的参数
+  Options _options;
+
+  /// http响应数据
+  ///
+  /// 在[Work._onParseResponse]生命周期阶段开始出现
+  Response _response;
+
+  /// 在一次[Work]执行生命周期中传递的自定义数据
+  ///
+  /// 通常在[Work]的某个生命周期方法中创建，以便在另一个生命周期中使用。
+  /// 此额外属性并不参与网络请求
+  dynamic extra;
+
   /// 判断本次服务请求是否成功(用户接口协议约定的请求结果，并非http的请求结果，但是http请求失败时该值总是返回false)
   bool get success => _success;
 
   /// 获取本次请求返回的结果消息(用户接口协议中约定的消息或者根据规则生成的本地信息，并非http响应消息）
   String get message => _message;
-
-  /// 获取本次http请求返回的响应码
-  int get code => _code;
 
   /// 获取任务传入的参数列表
   List get params => _params;
@@ -49,6 +57,14 @@ class WorkData<T> {
 
   /// 任务是否被取消
   bool get cancel => _cancel;
+
+  /// 用于网络请求使用的参数
+  Options get options => _options;
+
+  /// http响应数据
+  ///
+  /// 在[Work._onParseResponse]生命周期阶段开始出现
+  Response get response => _response;
 }
 
 /// 网络请求工具
@@ -85,11 +101,15 @@ abstract class Work<D, T extends WorkData<D>> {
   /// 启动任务
   ///
   /// * [params]为任务参数列表，[retry]为重试次数。
-  /// * [onProgress]为进度监听器，在[HttpMethod.get]中无效，
+  /// * [onSendProgress]为数据发送进度监听器，[onReceiveProgress]为数据接收进度监听器，
   /// 在[HttpMethod.download]请求中为下载进度，在其他类型请求中为上传/发送进度。
   /// * 同一个[Work]可以多次启动任务，多次启动的任务会顺序执行。
-  Future<T> start(
-      [List params = const [], int retry = 0, OnProgress onProgress]) async {
+  Future<T> start([
+    List params = const [],
+    int retry = 0,
+    OnProgress onSendProgress,
+    OnProgress onReceiveProgress,
+  ]) async {
     final counter = ++_counter;
 
     log(tag, "No.$counter work start");
@@ -119,9 +139,14 @@ abstract class Work<D, T extends WorkData<D>> {
 
     if (!_cancelMark && next) {
       // 构建http请求选项
-      final options = await _onCreateOptions(params, retry, onProgress);
+      data._options = await _onCreateOptions(
+        params,
+        retry,
+        onSendProgress,
+        onReceiveProgress,
+      );
       // 执行核心任务
-      await _onDoWork(options, data);
+      await _onDoWork(data);
     }
 
     if (!_cancelMark) {
@@ -178,7 +203,11 @@ abstract class Work<D, T extends WorkData<D>> {
 
   /// 构建请求选项参数
   Future<Options> _onCreateOptions(
-      List params, int retry, OnProgress onProgress) async {
+    List params,
+    int retry,
+    OnProgress onSendProgress,
+    OnProgress onReceiveProgress,
+  ) async {
     log(tag, "_onCreateOptions");
 
     final data = Map<String, dynamic>();
@@ -187,7 +216,8 @@ abstract class Work<D, T extends WorkData<D>> {
 
     final options = Options()
       ..retry = retry
-      ..onProgress = onProgress
+      ..onSendProgress = onSendProgress
+      ..onReceiveProgress = onReceiveProgress
       ..method = httpMethod
       ..headers = await onHeaders(params)
       ..params = await onPostFillParams(data, params) ?? data
@@ -203,26 +233,32 @@ abstract class Work<D, T extends WorkData<D>> {
   /// 核心任务执行
   ///
   /// 此处为真正启动http请求的方法
-  Future<void> _onDoWork(Options options, T data) async {
+  Future<void> _onDoWork(T data) async {
     if (_cancelMark) {
       return;
     }
 
     // 创建网络请求工具
-    var communication =
-        await onInterceptCreateCommunication() ?? _communication;
+    final communication =
+        await onInterceptCreateCommunication(data) ?? _communication;
 
     if (_cancelMark) {
       return;
     }
 
-    final response = await communication.request(tag, options);
+    await onWillRequest(data);
 
     if (_cancelMark) {
       return;
     }
 
-    await _onParseResponse(response, data);
+    data._response = await communication.request(tag, data.options);
+
+    if (_cancelMark) {
+      return;
+    }
+
+    await _onParseResponse(data);
   }
 
   /// 任务完成后置方法
@@ -299,9 +335,15 @@ abstract class Work<D, T extends WorkData<D>> {
 
   /// 拦截创建网络请求工具
   ///
-  /// * 用于创建完全自定义实现的网络请求工具。
+  /// 用于创建完全自定义实现的网络请求工具。
   @protected
-  FutureOr<Communication> onInterceptCreateCommunication() => null;
+  FutureOr<Communication> onInterceptCreateCommunication(T data) => null;
+
+  /// 即将执行网络请求前的回调
+  ///
+  /// 此处可以用于做数据统计，特殊变量创建等，如果调用[cancel]则会拦截接下来的网络请求
+  @protected
+  FutureOr<void> onWillRequest(T data) => null;
 
   /// 自定义配置http请求选择项
   ///
@@ -327,14 +369,12 @@ abstract class Work<D, T extends WorkData<D>> {
   String onUrl(List params);
 
   /// 解析响应数据
-  Future<void> _onParseResponse(Response response, T data) async {
+  Future<void> _onParseResponse(T data) async {
     log(tag, "_onParse response parse start");
-    data._code = response.statusCode;
 
-    if (response.success) {
+    if (data.response.success) {
       // 解析数据
-      //noinspection unchecked
-      if (await _onParse(response.data, data)) {
+      if (await _onParse(data)) {
         // 解析成功
         log(tag, "_onParseResponse result parse success onParseSuccess invoke");
         // 解析成功回调
@@ -349,9 +389,10 @@ abstract class Work<D, T extends WorkData<D>> {
         log(tag, "_onParseResponse result parse failed onParseFailed invoke");
         // 解析失败回调
         data._success = false;
+        data.response.errorType = HttpErrorType.other;
         data._message = await onParseFailed(data);
       }
-    } else if (response.statusCode > 0) {
+    } else if (data.response.errorType == HttpErrorType.response) {
       // 网络请求失败
       log(tag,
           "_onParseResponse network request false onNetworkRequestFailed invoke");
@@ -368,9 +409,9 @@ abstract class Work<D, T extends WorkData<D>> {
   }
 
   /// 解析响应体，返回解析结果
-  Future<bool> _onParse(responseBody, T data) async {
+  Future<bool> _onParse(T data) async {
     log(tag, "_onParse start");
-    if (!await onCheckResponse(responseBody)) {
+    if (!await onCheckResponse(data)) {
       // 通信异常
       log(tag, "_onParse response body error");
       return false;
@@ -378,21 +419,21 @@ abstract class Work<D, T extends WorkData<D>> {
 
     try {
       // 提取服务执行结果
-      data._success = await onResponseResult(responseBody);
+      data._success = await onResponseResult(data);
       log(tag, "_onParse request result:${data.success}");
 
       if (data.success) {
         // 服务请求成功回调
         log(tag, "_onParse onRequestSuccess invoked");
-        data._result = await onResponseSuccess(responseBody, data);
+        data._result = await onResponseSuccess(data);
         // 提取服务返回的消息
-        data._message = await onRequestSuccessMessage(responseBody, data);
+        data._message = await onRequestSuccessMessage(data);
       } else {
         // 服务请求失败回调
         log(tag, "_onParse onRequestFailed invoked");
-        data._result = await onRequestFailed(responseBody, data);
+        data._result = await onRequestFailed(data);
         // 提取服务返回的消息
-        data._message = await onRequestFailedMessage(responseBody, data);
+        data._message = await onRequestFailedMessage(data);
       }
       log(tag, "_onParse request message:", data.message);
 
@@ -420,7 +461,7 @@ abstract class Work<D, T extends WorkData<D>> {
 
   /// 网络连接建立成功，但是请求失败时调用
   ///
-  /// 即响应码不是200，返回网络请求失败时的消息，即[WorkData.message]字段
+  /// 即响应码不是200，如4xx，5xx，返回网络请求失败时的消息，即[WorkData.message]字段
   @protected
   FutureOr<String> onNetworkRequestFailed(T data) => null;
 
@@ -432,63 +473,51 @@ abstract class Work<D, T extends WorkData<D>> {
 
   /// 检测响应结果是否符合预期（数据类型或是否包含特定字段），也可以做验签
   ///
-  /// * 通常[response]类型是[onConfigOptions]中设置的[Options.responseType]决定的。
-  /// * 在一般请求中默认为[ResponseType.json]则[response]为[Map]类型的json数据。
-  /// * 下载请求中默认为[ResponseType.stream]则[response]为[Stream]。
-  /// * 如果设置为[ResponseType.plain]则[response]为字符串。
+  /// * 通常[data.response]类型是[onConfigOptions]中设置的[Options.responseType]决定的。
+  /// * 在一般请求中默认为[ResponseType.json]则[data.response]为[Map]类型的json数据。
+  /// * 下载请求中默认为[ResponseType.stream]则[data.response]为[Stream]。
+  /// * 如果设置为[ResponseType.plain]则[data.response]为字符串。
   @protected
-  FutureOr<bool> onCheckResponse(response) => true;
+  FutureOr<bool> onCheckResponse(T data) => true;
 
   /// 提取服务执行结果
   ///
   /// * http响应成功，从接口响应的数据中提取本次业务请求真正的成功或失败结果。
-  /// * 通常[response]类型是[onConfigOptions]中设置的[Options.responseType]决定的。
-  /// * 在一般请求中默认为[ResponseType.json]则[response]为[Map]类型的json数据。
-  /// * 下载请求中默认为[ResponseType.stream]则[response]为[Stream]。
-  /// * 如果设置为[ResponseType.plain]则[response]为字符串。
+  /// * 通常[data.response]类型是[onConfigOptions]中设置的[Options.responseType]决定的。
+  /// * 在一般请求中默认为[ResponseType.json]则[data.response]为[Map]类型的json数据。
+  /// * 下载请求中默认为[ResponseType.stream]则[data.response]为[Stream]。
+  /// * 如果设置为[ResponseType.plain]则[data.response]为字符串。
   @protected
-  FutureOr<bool> onResponseResult(response);
+  FutureOr<bool> onResponseResult(T data);
 
   /// 提取服务执行成功时返回的真正有用结果数据
   ///
   /// * 在服务请求成功后调用，即[onResponseResult]返回值为true时被调用，
   /// 用于生成请求成功后的任务返回真正结果数据对象[D]。
-  /// * 通常[response]类型是[onConfigOptions]中设置的[Options.responseType]决定的。
-  /// * 在一般请求中默认为[ResponseType.json]则[response]为[Map]类型的json数据。
-  /// * 下载请求中默认为[ResponseType.stream]则[response]为[Stream]。
-  /// * 如果设置为[ResponseType.plain]则[response]为字符串。
+  /// * 通常[data.response]类型是[onConfigOptions]中设置的[Options.responseType]决定的。
+  /// * 在一般请求中默认为[ResponseType.json]则[data.response]为[Map]类型的json数据。
+  /// * 下载请求中默认为[ResponseType.stream]则[data.response]为[Stream]。
+  /// * 如果设置为[ResponseType.plain]则[data.response]为字符串。
   @protected
-  FutureOr<D> onResponseSuccess(response, T data);
+  FutureOr<D> onResponseSuccess(T data);
 
   /// 提取或设置服务返回的成功结果消息
   ///
-  /// * 在服务请求成功后调用，即[onResponseResult]返回值为true时被调用。
-  /// * 通常[response]类型是[onConfigOptions]中设置的[Options.responseType]决定的。
-  /// * 在一般请求中默认为[ResponseType.json]则[response]为[Map]类型的json数据。
-  /// * 下载请求中默认为[ResponseType.stream]则[response]为[Stream]。
-  /// * 如果设置为[ResponseType.plain]则[response]为字符串。
+  /// 在服务请求成功后调用，即[onResponseResult]返回值为true时被调用。
   @protected
-  FutureOr<String> onRequestSuccessMessage(response, T data) => null;
+  FutureOr<String> onRequestSuccessMessage(T data) => null;
 
   /// 提取或设置服务执行失败时的返回结果数据
   ///
-  /// * 在服务请求失败后调用，即[onResponseResult]返回值为false时被调用，
+  /// 在服务请求失败后调用，即[onResponseResult]返回值为false时被调用，
   /// 用于生成请求失败后的任务返回真正结果数据对象[D]，可能是一个默认值。
-  /// * 通常[response]类型是[onConfigOptions]中设置的[Options.responseType]决定的。
-  /// * 在一般请求中默认为[ResponseType.json]则[response]为[Map]类型的json数据。
-  /// * 下载请求中默认为[ResponseType.stream]则[response]为[Stream]。
-  /// * 如果设置为[ResponseType.plain]则[response]为字符串。
   @protected
-  FutureOr<D> onRequestFailed(response, T data) => null;
+  FutureOr<D> onRequestFailed(T data) => null;
 
   /// 提取或设置服务返回的失败结果消息
   ///
-  /// * 在服务请求失败后调用，即[onResponseResult]返回值为false时被调用。
-  /// * 通常[response]类型是[onConfigOptions]中设置的[Options.responseType]决定的。
-  /// * 在一般请求中默认为[ResponseType.json]则[response]为[Map]类型的json数据。
-  /// * 下载请求中默认为[ResponseType.stream]则[response]为[Stream]。
-  /// * 如果设置为[ResponseType.plain]则[response]为字符串。
-  FutureOr<String> onRequestFailedMessage(response, T data) => null;
+  /// 在服务请求失败后调用，即[onResponseResult]返回值为false时被调用。
+  FutureOr<String> onRequestFailedMessage(T data) => null;
 
   /// 本次任务执行成功后执行
   ///

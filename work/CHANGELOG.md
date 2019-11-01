@@ -1,3 +1,10 @@
+## [0.4.0] - 2019/11/1
+
+* 大幅度修改work的核心生命周期函数的参数，`WorkData`作为生命周期核心的传递句柄
+* 将`Options`和`Response`存入`WorkData`传递
+* 在`WorkData`中增加`extra`字段
+* 在`Response`中增加请求错误类型`errorType`和接收数据总量`receiveByteCount`
+
 ## [0.3.3] - 2019/10/21
 
 * 修复数据解析失败任然返回请求成功的bug
