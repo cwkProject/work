@@ -10,8 +10,9 @@ bool debugWork = true;
 /// 全局使用的[Dio]请求对象
 Dio dio = Dio(
   BaseOptions(
-    connectTimeout: 30000,
+    connectTimeout: 10000,
     receiveTimeout: 30000,
+    sendTimeout: 30000,
     contentType: "application/x-www-form-urlencoded",
   ),
 );
