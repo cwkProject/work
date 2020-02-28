@@ -157,13 +157,21 @@ abstract class Work<D, T extends WorkData<D>> {
     if (!_cancelMark) {
       // 最后执行
       log(tag, "onFinish invoke");
-      await onFinish(data);
+      try {
+        await onFinish(data);
+      } catch (e) {
+        log(tag, "onFinish failed", e);
+      }
     }
 
     if (_cancelMark) {
       // 任务被取消
       log(tag, "onCanceled invoked");
-      await onCanceled(data);
+      try {
+        await onCanceled(data);
+      } catch (e) {
+        log(tag, "onCanceled failed", e);
+      }
     }
 
     log(tag, "No.$counter work end");
@@ -239,8 +247,7 @@ abstract class Work<D, T extends WorkData<D>> {
     }
 
     // 创建网络请求工具
-    final communication =
-        await onInterceptCreateCommunication(data) ?? _communication;
+    final communication = await onInterceptCreateCommunication(data) ?? _communication;
 
     if (_cancelMark) {
       return;
@@ -266,14 +273,19 @@ abstract class Work<D, T extends WorkData<D>> {
   @protected
   Future<void> _onStopWork(T data) async {
     log(tag, "onStopWork invoked");
+
     if (!_cancelMark) {
-      // 不同结果的后继执行
-      if (data.success) {
-        log(tag, "onSuccess invoke");
-        await onSuccess(data);
-      } else {
-        log(tag, "onFailed invoke");
-        await onFailed(data);
+      try {
+        // 不同结果的后继执行
+        if (data.success) {
+          log(tag, "onSuccess invoke");
+          await onSuccess(data);
+        } else {
+          log(tag, "onFailed invoke");
+          await onFailed(data);
+        }
+      } catch (e) {
+        log(tag, 'onStopWork failed', e);
       }
     }
   }
@@ -389,13 +401,12 @@ abstract class Work<D, T extends WorkData<D>> {
         log(tag, "_onParseResponse result parse failed onParseFailed invoke");
         // 解析失败回调
         data._success = false;
-        data.response.errorType = HttpErrorType.other;
+        data.response.errorType = HttpErrorType.parse;
         data._message = await onParseFailed(data);
       }
     } else if (data.response.errorType == HttpErrorType.response) {
       // 网络请求失败
-      log(tag,
-          "_onParseResponse network request false onNetworkRequestFailed invoke");
+      log(tag, "_onParseResponse network request false onNetworkRequestFailed invoke");
 
       // 网络请求失败回调
       data._message = await onNetworkRequestFailed(data);
@@ -434,6 +445,7 @@ abstract class Work<D, T extends WorkData<D>> {
         data._result = await onRequestFailed(data);
         // 提取服务返回的消息
         data._message = await onRequestFailedMessage(data);
+        data.response.errorType = HttpErrorType.task;
       }
       log(tag, "_onParse request message:", data.message);
 

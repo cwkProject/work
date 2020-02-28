@@ -49,8 +49,7 @@ class Communication {
 
     // 转换类型
     if (response.success &&
-        (options.responseType == null ||
-            options.responseType == ResponseType.json) &&
+        (options.responseType == null || options.responseType == ResponseType.json) &&
         response.data is String &&
         response.data.isNotEmpty) {
       response.data = json.decode(response.data);
@@ -271,6 +270,12 @@ enum HttpErrorType {
 
   /// 用户取消请求
   cancel,
+
+  /// 业务任务执行错误（应用业务逻辑失败）
+  task,
+
+  /// 响应数据解析错误
+  parse,
 
   /// 一些其他异常，可能是网络库或其他数据处理异常
   other,
