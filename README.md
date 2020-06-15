@@ -54,7 +54,7 @@ class LoginWork extends SimpleWork<User> {
 
   @override
   String onUrl(List params) => "https://xxx/user/login";  
-  // 地址必须为完整地址，没有baseUrl支持，项目代码必须集中拼接和管理所有接口地址，便于维护和查找
+  // 地址可以是完整地址，支持baseUrl，需调用[mergeBaseOptions]设置
 
   @override
   HttpMethod get httpMethod => HttpMethod.post; // 使用post请求

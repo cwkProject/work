@@ -11,6 +11,7 @@ import 'package:mime/mime.dart';
 
 import '_dio_request.dart' as http;
 import '_print.dart';
+import 'work_config.dart';
 
 /// 进度监听器
 typedef OnProgress = void Function(int current, int total);
@@ -25,7 +26,7 @@ class Communication {
   ///
   /// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回响应数据
   Future<Response> request(String tag, Options options) async {
-    if (!options.url.startsWith(new RegExp(r"https?://"))) {
+    if (!options.url.startsWith(new RegExp(r"https?://")) && dio.options.baseUrl != null) {
       // 地址不合法
       log(tag, "url error");
       return Response(errorType: HttpErrorType.other);
@@ -64,7 +65,7 @@ class Options {
   /// Http请求方法
   HttpMethod method;
 
-  /// 完整的请求地址（需包含http(s)://）
+  /// 完整的请求地址（包含http(s)://），或者是相对地址（需调用过[mergeBaseOptions]设置全局根地址[baseUrl]）
   String url;
 
   /// 请求重试次数
@@ -119,7 +120,7 @@ class Options {
   @override
   String toString() => '''request 
                         $method
-                        url: $url
+                        url: ${dio.options.baseUrl ?? ""}$url
                         headers: $headers
                         params: $params''';
 }

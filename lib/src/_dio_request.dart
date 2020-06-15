@@ -155,8 +155,7 @@ Future<dio.FormData> _onConvertToDio(Map<String, dynamic> src) async {
   for (final entry in src.entries) {
     if (entry.value is List) {
       (entry.value as List);
-      params[entry.key] =
-          await Stream.fromFutures(entry.value.map(onConvert)).toList();
+      params[entry.key] = await Stream.fromFutures(entry.value.map(onConvert)).toList();
     } else {
       params[entry.key] = await onConvert(entry.value);
     }
