@@ -12,5 +12,7 @@ dependencies:
   meta: ^1.1.6
   dio: ^3.0.4
   mime: ^0.9.6+2
+  http_parser: ^3.1.4
 
 dev_dependencies:
+  path: ^1.7.0
