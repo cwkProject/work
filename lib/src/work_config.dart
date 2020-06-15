@@ -2,7 +2,6 @@
 // Version 1.0 2018/9/20
 // Since 1.0 2018/9/20
 import 'package:dio/dio.dart';
-import 'dart:io';
 
 /// 是否开启debug模式，开启后会输出日志
 bool debugWork = true;
