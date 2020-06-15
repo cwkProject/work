@@ -17,7 +17,7 @@ set debugWork(bool enable) {
 }
 
 /// 全局使用的[Dio]请求对象
-Dio _dio = Dio(
+final _dio = Dio(
   BaseOptions(
     connectTimeout: 10000,
     receiveTimeout: 30000,
