@@ -1,8 +1,9 @@
 name: work
-description: 封装http业务接口
-version: 0.4.4
+description: Encapsulate http business interface protocol, provide limited extension functions, isolate the underlying implementation method of http (currently based on dio), and closely integrate with the company's http specification to regulate the writing and use of team member interfaces.
 
-homepage: https://github.com/cwkProject/work/tree/master/work
+version: 0.4.5
+
+homepage: https://github.com/cwkProject/work
 publish_to: https://pub.dartlang.org
 
 environment:
@@ -14,5 +15,3 @@ dependencies:
   mime: ^0.9.6+2
   http_parser: ^3.1.4
   path: ^1.6.4
-
-dev_dependencies:
