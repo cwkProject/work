@@ -1,3 +1,7 @@
+## [0.4.4] - 2020/6/16
+
+* 修复网址合法性检查中对`baseUrl`的判断错误
+
 ## [0.4.3] - 2020/6/15
 
 * 开放对`baseUrl`的支持，需要调用`work_config.dart`中的`mergeBaseOptions`设置

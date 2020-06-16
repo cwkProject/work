@@ -26,7 +26,7 @@ class Communication {
   ///
   /// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回响应数据
   Future<Response> request(String tag, Options options) async {
-    if (!options.url.startsWith(new RegExp(r"https?://")) && dio.options.baseUrl != null) {
+    if (!options.url.startsWith(RegExp(r"https?://")) && dio.options.baseUrl == null) {
       // 地址不合法
       log(tag, "url error");
       return Response(errorType: HttpErrorType.other);
