@@ -19,7 +19,7 @@ void log(String tag, String message, [Object data]) {
   if (finalMessage.length <= _logBufferSize) {
     print(finalMessage);
   } else {
-    for (var it in _wrap(finalMessage)) {
+    for (final it in _wrap(finalMessage)) {
       print(it);
     }
   }
@@ -31,19 +31,20 @@ void log(String tag, String message, [Object data]) {
 Iterable<String> _wrap(String src) sync* {
   final buffer = StringBuffer();
 
-  for (var line in src.split('\n')) {
-    for (var part in _chunked(line)) {
+  for (final line in src.split('\n')) {
+    for (final part in _chunked(line)) {
       if (buffer.length + part.length > _logBufferSize) {
         yield buffer.toString();
         buffer.clear();
       }
 
-      buffer..write(part)..write('\n');
+      buffer.write(part);
     }
-  }
 
-  if (buffer.length > 0) {
-    yield buffer.toString();
+    if (buffer.length > 0) {
+      yield buffer.toString();
+      buffer.clear();
+    }
   }
 }
 

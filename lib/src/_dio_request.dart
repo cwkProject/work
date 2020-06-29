@@ -134,7 +134,7 @@ com.HttpErrorType _onConvertErrorType(dio.DioErrorType type) {
 ///
 /// [src]原始参数，返回处理后的符合dio接口的参数
 Future<dio.FormData> _onConvertToDio(Map<String, dynamic> src) async {
-  onConvert(value) async {
+  Future<dynamic> onConvert(value) async {
     if (value is File) {
       value = com.UploadFileInfo(value.path);
     }
@@ -154,8 +154,7 @@ Future<dio.FormData> _onConvertToDio(Map<String, dynamic> src) async {
 
   for (final entry in src.entries) {
     if (entry.value is List) {
-      (entry.value as List);
-      params[entry.key] = await Stream.fromFutures(entry.value.map(onConvert)).toList();
+      params[entry.key] = await Stream.fromFutures(entry.value.map<Future<dynamic>>(onConvert)).toList();
     } else {
       params[entry.key] = await onConvert(entry.value);
     }
