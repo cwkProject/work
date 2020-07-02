@@ -1,10 +1,12 @@
 // Created by 超悟空 on 2018/9/20.
 // Version 1.0 2018/9/20
 // Since 1.0 2018/9/20
+import 'dart:math';
+
 import 'work_config.dart';
 
 /// 每次打印的最大长度
-const _logBufferSize = 1000;
+const _logBufferSize = 800;
 
 /// 输出日志
 ///
@@ -14,14 +16,10 @@ void log(String tag, String message, [Object data]) {
     return;
   }
 
-  final finalMessage = "$tag: $message ${data ?? ""}";
+  final finalMessage = '$message ${data ?? ''}';
 
-  if (finalMessage.length <= _logBufferSize) {
-    print(finalMessage);
-  } else {
-    for (final it in _wrap(finalMessage)) {
-      print(it);
-    }
+  for (final it in _wrap(finalMessage)) {
+    print('$tag: $it');
   }
 }
 
@@ -41,7 +39,7 @@ Iterable<String> _wrap(String src) sync* {
       buffer.write(part);
     }
 
-    if (buffer.length > 0) {
+    if (buffer.isNotEmpty) {
       yield buffer.toString();
       buffer.clear();
     }
@@ -57,7 +55,7 @@ Iterable<String> _chunked(String src) sync* {
   var index = 0;
   while (index < length) {
     final end = index + _logBufferSize;
-    final coercedEnd = end > length ? length : end;
+    final coercedEnd = min(length, end);
     yield src.substring(index, coercedEnd);
 
     index = coercedEnd;
