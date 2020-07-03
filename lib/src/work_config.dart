@@ -34,7 +34,6 @@ void mergeBaseOptions({
   String method,
   String baseUrl,
   Map<String, dynamic> queryParameters,
-  String path,
   int connectTimeout,
   int receiveTimeout,
   int sendTimeout,
