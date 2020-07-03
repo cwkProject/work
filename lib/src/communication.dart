@@ -119,10 +119,10 @@ class Options {
 
   @override
   String toString() => '''request 
-                          $method
-                          url: ${dio.options.baseUrl ?? ""}$url
-                          headers: $headers
-                          params: $params''';
+$method
+url: ${dio.options.baseUrl ?? ""}$url
+headers: $headers
+params: $params''';
 }
 
 /// Http响应数据
@@ -167,9 +167,9 @@ class Response {
 
   @override
   String toString() => '''response 
-                          success: $success; code: $statusCode;
-                          headers: $_headersToString;
-                          body: $data''';
+success: $success; code: $statusCode;
+headers: $_headersToString;
+body: $data''';
 }
 
 /// 取消请求工具
