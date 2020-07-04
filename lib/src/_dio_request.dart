@@ -1,17 +1,19 @@
 // Created by 超悟空 on 2018/9/25.
-// Version 1.0 2018/9/25
-// Since 1.0 2018/9/25
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-import 'package:http_parser/http_parser.dart';
 
 import 'package:dio/dio.dart' as dio;
 
 import '_print.dart';
 import 'communication.dart' as com;
 import 'work_config.dart' as work;
+
+import '_convert.dart'
+// ignore: uri_does_not_exist
+    if (dart.library.html) '_convert_web.dart'
+// ignore: uri_does_not_exist
+    if (dart.library.io) '_convert_native.dart';
 
 /// 发起请求
 ///
@@ -65,7 +67,7 @@ Future<com.Response> request(String tag, com.Options options) async {
       case com.HttpMethod.upload:
         dioResponse = await work.dio.request(
           options.url,
-          data: await _onConvertToDio(options.params),
+          data: await convertToDio(options.params),
           cancelToken: options.cancelToken.data,
           options: dioOptions,
           onSendProgress: options.onSendProgress,
@@ -128,39 +130,6 @@ com.HttpErrorType _onConvertErrorType(dio.DioErrorType type) {
     default:
       return com.HttpErrorType.other;
   }
-}
-
-/// 用于[com.HttpMethod.upload]请求类型的数据转换
-///
-/// [src]原始参数，返回处理后的符合dio接口的参数
-Future<dio.FormData> _onConvertToDio(Map<String, dynamic> src) async {
-  Future<dynamic> onConvert(value) async {
-    if (value is File) {
-      value = com.UploadFileInfo(value.path);
-    }
-
-    if (value is com.UploadFileInfo) {
-      return dio.MultipartFile.fromFile(
-        value.filePath,
-        filename: value.fileName,
-        contentType: MediaType.parse(value.mimeType),
-      );
-    }
-
-    return value;
-  }
-
-  final params = Map<String, dynamic>();
-
-  for (final entry in src.entries) {
-    if (entry.value is List) {
-      params[entry.key] = await Stream.fromFutures(entry.value.map<Future<dynamic>>(onConvert)).toList();
-    } else {
-      params[entry.key] = await onConvert(entry.value);
-    }
-  }
-
-  return dio.FormData.fromMap(params);
 }
 
 /// 生成dio专用配置

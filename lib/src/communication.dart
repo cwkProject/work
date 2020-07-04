@@ -4,7 +4,6 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:path/path.dart';
 
 import 'package:mime/mime.dart';
@@ -191,27 +190,61 @@ class CancelToken {
 
 /// 描述要上传的文件信息
 class UploadFileInfo {
-  UploadFileInfo(this.filePath, {this.fileName, this.mimeType}) {
+  UploadFileInfo._raw({this.stream, this.length, this.filePath, this.fileName, this.mimeType});
+
+  /// 使用[filePath]创建上传文件
+  ///
+  /// 仅native端支持
+  factory UploadFileInfo(String filePath, {String fileName, String mimeType}) {
     fileName ??= basename(filePath);
 
     if (mimeType == null) {
       mimeType = lookupMimeType(fileName);
     }
+
+    return UploadFileInfo._raw(
+        stream: null, filePath: filePath, fileName: fileName, mimeType: mimeType);
   }
 
-  /// 文件路径
-  String filePath;
+  /// 使用文件的字节流[bytes]创建上传文件
+  factory UploadFileInfo.bytes(List<int> bytes, {String fileName, String mimeType}) {
+    return UploadFileInfo._raw(
+        stream: Stream.fromIterable([bytes]),
+        length: bytes.length,
+        filePath: null,
+        fileName: fileName,
+        mimeType: mimeType);
+  }
+
+  /// 使用文件的字节流[stream]创建上传文件
+  factory UploadFileInfo.stream(Stream<List<int>> stream, int length,
+      {String fileName, String mimeType}) {
+    return UploadFileInfo._raw(
+        stream: stream, length: length, filePath: null, fileName: fileName, mimeType: mimeType);
+  }
+
+  /// 文件字节流
+  ///
+  /// web端仅支持此模式上传
+  /// native端如果[stream]不为null则会忽略[filePath]
+  final Stream<List<int>> stream;
+
+  /// [stream]中的文件字节流长度
+  final int length;
+
+  /// 文件路径（不支持web）
+  final String filePath;
 
   /// 文件名
   ///
   /// 带后缀，用于表示要上传的文件名称，覆盖[filePath]中的文件名
-  String fileName;
+  final String fileName;
 
   /// 要上传的文件mime类型
-  String mimeType;
+  final String mimeType;
 
   @override
-  String toString() => "UploadFileInfo:'$filePath'";
+  String toString() => "UploadFileInfo:'$filePath' fileName:$fileName mimeType:$mimeType";
 }
 
 /// 响应数据格式
@@ -248,7 +281,7 @@ enum HttpMethod {
 
   /// 上传
   ///
-  /// （post 'multipart/form-data'包装），参数中的文件需要用[File]或[UploadFileInfo]类型包装，支持文件列表
+  /// （post 'multipart/form-data'包装），参数中的文件需要用[File](不支持web)或[UploadFileInfo]类型包装，支持文件列表
   upload,
 
   /// 下载（get包装）
