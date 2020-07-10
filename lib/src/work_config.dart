@@ -4,6 +4,13 @@
 
 import 'package:dio/dio.dart';
 
+/// 表单提交格式
+///
+/// 如果默认的post使用'multipart/form-data'方式提交，
+/// 则需要将[mergeBaseOptions.contentType]设为此值，
+/// 框架负责将传入的map数据自动装配成FormData格式
+const formDataContentType = 'multipart/form-data';
+
 /// 是否开启debug模式，开启后会输出日志
 bool _debugWork = true;
 

@@ -15,6 +15,8 @@ import 'work_config.dart';
 /// 进度监听器
 typedef OnProgress = void Function(int current, int total);
 
+const formData = 'multipart/form-data';
+
 /// 通讯工具
 ///
 /// 用于进行HTTP请求的工具
@@ -100,6 +102,8 @@ class Options {
   /// 请求的Content-Type
   ///
   /// 默认值'application/x-www-form-urlencoded'
+  /// 如果需要formData的表单提交格式，请将该值设置为[formData]
+  /// 框架会自动进行表单装配
   String contentType;
 
   /// [responseType] 表示期望以那种格式(方式)接受响应数据

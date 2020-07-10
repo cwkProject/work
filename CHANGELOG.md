@@ -1,3 +1,7 @@
+## [0.5.1] - 2020/7/10
+
+* 增加对`multipart/form-data`请求的自动装配
+
 ## [0.5.0] - 2020/7/4
 
 * 修改`UploadFileInfo`增加直接上传字节流的能力，修改`_dio_request.dart`实现，分离convert以支持web
