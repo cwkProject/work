@@ -35,7 +35,7 @@ Future<FormData> convertToDio(Map<String, dynamic> src) async {
     return value;
   }
 
-  final params = Map<String, dynamic>();
+  final params = <String, dynamic>{};
 
   for (final entry in src.entries) {
     if (entry.value is List) {
