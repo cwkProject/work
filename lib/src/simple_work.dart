@@ -59,18 +59,19 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   @override
   SimpleWorkData<D> onCreateWorkData() => SimpleWorkData<D>();
 
-  FutureOr<bool> onCheckResponse(SimpleWorkData<D> data) =>
-      data.response.data != null;
+  FutureOr<bool> onCheckResponse(SimpleWorkData<D> data) => data.response.data != null;
 
   @override
-  FutureOr<D> onResponseSuccess(SimpleWorkData<D> data) async =>
-      data.response.data[result] == null
-          ? await onDefaultResult(data)
-          : await onExtractResult(data.response.data[result], data);
+  FutureOr<D> onResponseSuccess(SimpleWorkData<D> data) {
+    if (data.response.data[result] == null) {
+      return onDefaultResult(data);
+    } else {
+      return onExtractResult(data.response.data[result], data);
+    }
+  }
 
   @override
-  FutureOr<bool> onResponseResult(SimpleWorkData<D> data) =>
-      data.response.data["state"];
+  FutureOr<bool> onResponseResult(SimpleWorkData<D> data) => data.response.data["state"];
 
   @mustCallSuper
   @override
@@ -83,12 +84,10 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   }
 
   @override
-  FutureOr<String> onRequestSuccessMessage(SimpleWorkData<D> data) =>
-      data.response.data["message"];
+  FutureOr<String> onRequestSuccessMessage(SimpleWorkData<D> data) => data.response.data["message"];
 
   @override
-  FutureOr<String> onRequestFailedMessage(SimpleWorkData<D> data) =>
-      data.response.data["message"];
+  FutureOr<String> onRequestFailedMessage(SimpleWorkData<D> data) => data.response.data["message"];
 
   /// 生成响应成功的结果数据
   ///
