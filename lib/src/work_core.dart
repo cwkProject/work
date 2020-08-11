@@ -1,12 +1,11 @@
 // Created by 超悟空 on 2018/9/20.
-// Version 1.0 2018/9/20
-// Since 1.0 2018/9/20
 
 import 'dart:async';
+
 import 'package:meta/meta.dart';
 
-import 'communication.dart';
 import '_print.dart';
+import 'communication.dart';
 
 /// [Work]返回的数据包装类
 ///
@@ -112,7 +111,7 @@ abstract class Work<D, T extends WorkData<D>> {
   ]) async {
     final counter = ++_counter;
 
-    log(tag, "No.$counter work start");
+    log(tag, 'No.$counter work start');
 
     final completer = Completer<T>();
     final lastFuture = _lastFuture;
@@ -156,31 +155,31 @@ abstract class Work<D, T extends WorkData<D>> {
 
     if (!_cancelMark) {
       // 最后执行
-      log(tag, "onFinish invoke");
+      log(tag, 'onFinish invoke');
       try {
         final finish = onFinish(data);
         if (finish is Future<void>) {
           await finish;
         }
       } catch (e) {
-        log(tag, "onFinish failed", e);
+        log(tag, 'onFinish failed', e);
       }
     }
 
     if (_cancelMark) {
       // 任务被取消
-      log(tag, "onCanceled invoked");
+      log(tag, 'onCanceled invoked');
       try {
         final canceled = onCanceled(data);
         if (canceled is Future<void>) {
           await canceled;
         }
       } catch (e) {
-        log(tag, "onCanceled failed", e);
+        log(tag, 'onCanceled failed', e);
       }
     }
 
-    log(tag, "No.$counter work end");
+    log(tag, 'No.$counter work end');
 
     data._cancel = _cancelMark;
 
@@ -229,9 +228,9 @@ abstract class Work<D, T extends WorkData<D>> {
     OnProgress onSendProgress,
     OnProgress onReceiveProgress,
   ) async {
-    log(tag, "_onCreateOptions");
+    log(tag, '_onCreateOptions');
 
-    final data = Map<String, dynamic>();
+    final data = <String, dynamic>{};
 
     final preFillParams = onPreFillParams(data, params);
     if (preFillParams is Future<void>) {
@@ -318,19 +317,19 @@ abstract class Work<D, T extends WorkData<D>> {
   @mustCallSuper
   @protected
   Future<void> _onStopWork(T data) async {
-    log(tag, "onStopWork invoked");
+    log(tag, 'onStopWork invoked');
 
     if (!_cancelMark) {
       try {
         // 不同结果的后继执行
         if (data.success) {
-          log(tag, "onSuccess invoke");
+          log(tag, 'onSuccess invoke');
           final success = onSuccess(data);
           if (success is Future<void>) {
             await success;
           }
         } else {
-          log(tag, "onFailed invoke");
+          log(tag, 'onFailed invoke');
           final failed = onFailed(data);
           if (failed is Future<void>) {
             await failed;
@@ -434,26 +433,26 @@ abstract class Work<D, T extends WorkData<D>> {
 
   /// 解析响应数据
   Future<void> _onParseResponse(T data) async {
-    log(tag, "_onParse response parse start");
+    log(tag, '_onParse response parse start');
 
     if (data.response.success) {
       // 解析数据
       if (await _onParse(data)) {
         // 解析成功
-        log(tag, "_onParseResponse result parse success onParseSuccess invoke");
+        log(tag, '_onParseResponse result parse success onParseSuccess invoke');
         // 解析成功回调
         final parseSuccess = onParseSuccess(data);
         if (parseSuccess is Future<void>) {
           await parseSuccess;
         }
         if (data.success) {
-          log(tag, "work success");
+          log(tag, 'work success');
         } else {
-          log(tag, "work failed");
+          log(tag, 'work failed');
         }
       } else {
         // 解析失败
-        log(tag, "_onParseResponse result parse failed onParseFailed invoke");
+        log(tag, '_onParseResponse result parse failed onParseFailed invoke');
         // 解析失败回调
         data._success = false;
         data.response.errorType = HttpErrorType.parse;
@@ -466,7 +465,7 @@ abstract class Work<D, T extends WorkData<D>> {
       }
     } else if (data.response.errorType == HttpErrorType.response) {
       // 网络请求失败
-      log(tag, "_onParseResponse network request false onNetworkRequestFailed invoke");
+      log(tag, '_onParseResponse network request false onNetworkRequestFailed invoke');
 
       // 网络请求失败回调
       final networkRequestFailed = onNetworkRequestFailed(data);
@@ -477,7 +476,7 @@ abstract class Work<D, T extends WorkData<D>> {
       }
     } else {
       // 网络连接失败
-      log(tag, "_onParseResponse network error onNetworkError invoke");
+      log(tag, '_onParseResponse network error onNetworkError invoke');
 
       // 网络错误回调
       final networkError = onNetworkError(data);
@@ -491,13 +490,12 @@ abstract class Work<D, T extends WorkData<D>> {
 
   /// 解析响应体，返回解析结果
   Future<bool> _onParse(T data) async {
-    log(tag, "_onParse start");
+    log(tag, '_onParse start');
     final checkResponse = onCheckResponse(data);
-    final checkResponseResult =
-        (checkResponse is Future<bool>) ? await checkResponse : checkResponse;
+    final checkResponseResult = (checkResponse is Future<bool>) ? await checkResponse : checkResponse;
     if (!checkResponseResult) {
       // 通信异常
-      log(tag, "_onParse response body error");
+      log(tag, '_onParse response body error');
       return false;
     }
 
@@ -510,11 +508,11 @@ abstract class Work<D, T extends WorkData<D>> {
         data._success = responseResult;
       }
 
-      log(tag, "_onParse request result:${data.success}");
+      log(tag, '_onParse request result:${data.success}');
 
       if (data.success) {
         // 服务请求成功回调
-        log(tag, "_onParse onRequestSuccess invoked");
+        log(tag, '_onParse onRequestSuccess invoked');
         final responseSuccess = onResponseSuccess(data);
         if (responseSuccess is Future<D>) {
           data._result = await responseSuccess;
@@ -531,7 +529,7 @@ abstract class Work<D, T extends WorkData<D>> {
         }
       } else {
         // 服务请求失败回调
-        log(tag, "_onParse onRequestFailed invoked");
+        log(tag, '_onParse onRequestFailed invoked');
         final requestFailed = onRequestFailed(data);
         if (requestFailed is Future<D>) {
           data._result = await requestFailed;
@@ -548,14 +546,14 @@ abstract class Work<D, T extends WorkData<D>> {
         }
         data.response.errorType = HttpErrorType.task;
       }
-      log(tag, "_onParse request message:", data.message);
+      log(tag, '_onParse request message:', data.message);
 
       return true;
     } catch (e) {
-      log(tag, "_onParse error:", e);
+      log(tag, '_onParse error:', e);
       return false;
     } finally {
-      log(tag, "_onParse end");
+      log(tag, '_onParse end');
     }
   }
 
@@ -650,13 +648,13 @@ abstract class Work<D, T extends WorkData<D>> {
   ///
   /// 如果本任务被多次启动排队执行，则会一次性取消所有排队任务和正在执行的任务
   void cancel() {
-    log(tag, "cancel");
+    log(tag, 'cancel');
     if (_cancelMark) {
-      log(tag, "work has been canceled");
+      log(tag, 'work has been canceled');
       return;
     }
     if (_counter <= 0) {
-      log(tag, "work not started");
+      log(tag, 'work not started');
       return;
     }
     _cancelMark = true;

@@ -1,6 +1,4 @@
 // Created by 超悟空 on 2018/9/20.
-// Version 1.0 2018/9/20
-// Since 1.0 2018/9/20
 
 import 'dart:async';
 import 'dart:convert';
@@ -27,18 +25,18 @@ class Communication {
   ///
   /// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回响应数据
   Future<Response> request(String tag, Options options) async {
-    if (!options.url.startsWith(RegExp(r"https?://")) && dio.options.baseUrl == null) {
+    if (!options.url.startsWith(RegExp(r'https?://')) && dio.options.baseUrl == null) {
       // 地址不合法
-      log(tag, "url error");
+      log(tag, 'url error');
       return Response(errorType: HttpErrorType.other);
     }
 
-    log(tag, "http", options);
+    log(tag, 'http', options);
 
     Response response;
-    for (int i = 0; i <= options.retry; i++) {
+    for (var i = 0; i <= options.retry; i++) {
       if (i > 0) {
-        log(tag, "retry ", i);
+        log(tag, 'retry ', i);
       }
       response = await http.request(tag, options);
 
@@ -47,7 +45,7 @@ class Communication {
       }
     }
 
-    log(tag, "http", response);
+    log(tag, 'http', response);
 
     // 转换类型
     if (response.success &&
@@ -163,7 +161,7 @@ class Response {
   String get _headersToString {
     var stringBuffer = StringBuffer();
     headers?.forEach((key, value) {
-      value.forEach((e) => stringBuffer.writeln("$key: $e"));
+      value.forEach((e) => stringBuffer.writeln('$key: $e'));
     });
     return stringBuffer.toString();
   }
@@ -202,12 +200,9 @@ class UploadFileInfo {
   factory UploadFileInfo(String filePath, {String fileName, String mimeType}) {
     fileName ??= basename(filePath);
 
-    if (mimeType == null) {
-      mimeType = lookupMimeType(fileName);
-    }
+    mimeType ??= lookupMimeType(fileName);
 
-    return UploadFileInfo._raw(
-        stream: null, filePath: filePath, fileName: fileName, mimeType: mimeType);
+    return UploadFileInfo._raw(stream: null, filePath: filePath, fileName: fileName, mimeType: mimeType);
   }
 
   /// 使用文件的字节流[bytes]创建上传文件
@@ -221,10 +216,8 @@ class UploadFileInfo {
   }
 
   /// 使用文件的字节流[stream]创建上传文件
-  factory UploadFileInfo.stream(Stream<List<int>> stream, int length,
-      {String fileName, String mimeType}) {
-    return UploadFileInfo._raw(
-        stream: stream, length: length, filePath: null, fileName: fileName, mimeType: mimeType);
+  factory UploadFileInfo.stream(Stream<List<int>> stream, int length, {String fileName, String mimeType}) {
+    return UploadFileInfo._raw(stream: stream, length: length, filePath: null, fileName: fileName, mimeType: mimeType);
   }
 
   /// 文件字节流

@@ -1,6 +1,4 @@
 // Created by 超悟空 on 2018/9/26.
-// Version 1.0 2018/9/26
-// Since 1.0 2018/9/26
 
 import 'dart:async';
 
@@ -9,7 +7,7 @@ import 'communication.dart';
 import 'work_core.dart';
 
 /// 用于获取响应json数据协议中"result"字段
-const String result = "result";
+const String result = 'result';
 
 /// 简化的[WorkData]类实现
 ///
@@ -59,6 +57,7 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   @override
   SimpleWorkData<D> onCreateWorkData() => SimpleWorkData<D>();
 
+  @override
   FutureOr<bool> onCheckResponse(SimpleWorkData<D> data) => data.response.data != null;
 
   @override
@@ -71,23 +70,23 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   }
 
   @override
-  FutureOr<bool> onResponseResult(SimpleWorkData<D> data) => data.response.data["state"];
+  FutureOr<bool> onResponseResult(SimpleWorkData<D> data) => data.response.data['state'];
 
   @mustCallSuper
   @override
   FutureOr<D> onRequestFailed(SimpleWorkData<D> data) {
-    if (data.response.data["errorCode"] != null) {
-      data._errorCode = data.response.data["errorCode"];
+    if (data.response.data['errorCode'] != null) {
+      data._errorCode = data.response.data['errorCode'];
     }
 
     return super.onRequestFailed(data);
   }
 
   @override
-  FutureOr<String> onRequestSuccessMessage(SimpleWorkData<D> data) => data.response.data["message"];
+  FutureOr<String> onRequestSuccessMessage(SimpleWorkData<D> data) => data.response.data['message'];
 
   @override
-  FutureOr<String> onRequestFailedMessage(SimpleWorkData<D> data) => data.response.data["message"];
+  FutureOr<String> onRequestFailedMessage(SimpleWorkData<D> data) => data.response.data['message'];
 
   /// 生成响应成功的结果数据
   ///

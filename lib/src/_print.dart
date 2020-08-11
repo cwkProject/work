@@ -1,6 +1,5 @@
 // Created by 超悟空 on 2018/9/20.
-// Version 1.0 2018/9/20
-// Since 1.0 2018/9/20
+
 import 'dart:math';
 
 import 'work_config.dart';
@@ -30,7 +29,7 @@ Iterable<String> _wrap(String src) sync* {
   final buffer = StringBuffer();
 
   for (final line in src.split('\n')) {
-    for (final part in _chunked(line)) {
+    for (final part in _chunk(line)) {
       if (buffer.length + part.length > _logBufferSize) {
         yield buffer.toString();
         buffer.clear();
@@ -49,7 +48,7 @@ Iterable<String> _wrap(String src) sync* {
 /// 按照指定大小将字符串截取成一组子字符串
 ///
 /// [src]原字符串
-Iterable<String> _chunked(String src) sync* {
+Iterable<String> _chunk(String src) sync* {
   final length = src.length;
 
   var index = 0;

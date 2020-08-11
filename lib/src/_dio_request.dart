@@ -23,34 +23,34 @@ Future<com.Response> request(String tag, com.Options options) async {
 
   dio.Response dioResponse;
 
-  bool success = false;
+  var success = false;
 
   com.HttpErrorType errorType;
 
-  // 总接收子节数
-  int receiveByteCount = 0;
+  // 总接收字节数
+  var receiveByteCount = 0;
 
   // 结果解析器
-  dio.ResponseDecoder decoder = (responseBytes, options, responseBody) {
+  final decoder = (responseBytes, options, responseBody) {
     receiveByteCount = responseBytes.length;
     return utf8.decode(responseBytes, allowMalformed: true);
   };
 
   dioOptions.responseDecoder = decoder;
 
-  final isFormData = options.method == com.HttpMethod.upload ||
-      (options.contentType ?? work.dio.options.contentType) == com.formData;
+  final isFormData =
+      options.method == com.HttpMethod.upload || (options.contentType ?? work.dio.options.contentType) == com.formData;
 
   try {
     switch (options.method) {
       case com.HttpMethod.download:
-        log(tag, "download path:${options.downloadPath}");
+        log(tag, 'download path:${options.downloadPath}');
 
         // 接收进度代理
-        onReceiveProgress(int receive, int total) {
+        final onReceiveProgress = (int receive, int total) {
           receiveByteCount = receive;
           options.onReceiveProgress?.call(receive, total);
-        }
+        };
 
         dioResponse = await work.dio.download(options.url, options.downloadPath,
             data: options.params,
@@ -81,13 +81,13 @@ Future<com.Response> request(String tag, com.Options options) async {
 
     success = true;
   } on dio.DioError catch (e) {
-    log(tag, "http error", e.type);
+    log(tag, 'http error', e.type);
 
     dioResponse = e.response;
     success = false;
     errorType = _onConvertErrorType(e.type);
   } catch (e) {
-    log(tag, "http other error", e);
+    log(tag, 'http other error', e);
     errorType = com.HttpErrorType.other;
   }
 
@@ -96,9 +96,7 @@ Future<com.Response> request(String tag, com.Options options) async {
       success: success,
       statusCode: dioResponse.statusCode,
       headers: dioResponse.headers?.map,
-      data: dioResponse.request?.responseType == dio.ResponseType.stream
-          ? dioResponse.data.stream
-          : dioResponse.data,
+      data: dioResponse.request?.responseType == dio.ResponseType.stream ? dioResponse.data.stream : dioResponse.data,
       errorType: errorType,
       receiveByteCount: receiveByteCount,
     );
@@ -132,20 +130,20 @@ dio.Options _onConfigOptions(String tag, com.Options options) {
   switch (options.method) {
     case com.HttpMethod.get:
     case com.HttpMethod.download:
-      dioOptions.method = "GET";
+      dioOptions.method = 'GET';
       break;
     case com.HttpMethod.post:
     case com.HttpMethod.upload:
-      dioOptions.method = "POST";
+      dioOptions.method = 'POST';
       break;
     case com.HttpMethod.put:
-      dioOptions.method = "PUT";
+      dioOptions.method = 'PUT';
       break;
     case com.HttpMethod.head:
-      dioOptions.method = "HEAD";
+      dioOptions.method = 'HEAD';
       break;
     case com.HttpMethod.delete:
-      dioOptions.method = "DELETE";
+      dioOptions.method = 'DELETE';
       break;
   }
 
@@ -175,13 +173,13 @@ dio.Options _onConfigOptions(String tag, com.Options options) {
   dioOptions.sendTimeout = options.sendTimeout;
 
   if (options.cancelToken.data is! dio.CancelToken) {
-    com.CancelToken cancelToken = options.cancelToken;
+    final cancelToken = options.cancelToken;
 
     cancelToken.data = dio.CancelToken();
 
     cancelToken.stream.listen((_) {
       if (cancelToken.data is dio.CancelToken) {
-        log(tag, "http cancel");
+        log(tag, 'http cancel');
         cancelToken.data.cancel();
         cancelToken.data = null;
       }

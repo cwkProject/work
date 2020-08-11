@@ -1,6 +1,4 @@
 // Created by 超悟空 on 2018/9/20.
-// Version 1.0 2018/9/20
-// Since 1.0 2018/9/20
 
 import 'package:dio/dio.dart';
 
@@ -29,7 +27,7 @@ final _dio = Dio(
     connectTimeout: 10000,
     receiveTimeout: 30000,
     sendTimeout: 30000,
-    contentType: "application/x-www-form-urlencoded",
+    contentType: 'application/x-www-form-urlencoded',
   ),
 );
 

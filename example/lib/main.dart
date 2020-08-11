@@ -1,7 +1,7 @@
 import 'package:work/work.dart';
 
 void main() async {
-  final data = await TestWork().start(["xxx"]);
+  final data = await TestWork().start(['xxx']);
 
   if (data.success) {
     print(data.result);
@@ -26,11 +26,11 @@ class TestWork extends SimpleWork<String> {
   String onExtractResult(resultData, data) => resultData['account'];
 
   @override
-  String onUrl(List params) => "https://api.example.com/test";
+  String onUrl(List params) => 'https://api.example.com/test';
 
   @override
   void onFillParams(Map<String, dynamic> data, List params) {
-    data["param1"] = params[0];
+    data['param1'] = params[0];
   }
 
   @override
@@ -43,8 +43,7 @@ class TestWork extends SimpleWork<String> {
   String onParseFailed(data) => '请求失败，服务器异常';
 
   @override
-  String onRequestFailedMessage(data) =>
-      data.response.data['message'] ?? '操作失败';
+  String onRequestFailedMessage(data) => data.response.data['message'] ?? '操作失败';
 
   @override
   String onRequestSuccessMessage(data) => data.response.data['message'] ?? '';
@@ -53,13 +52,13 @@ class TestWork extends SimpleWork<String> {
 class DownloadWork extends SimpleDownloadWork {
   @override
   void onFillParams(Map<String, dynamic> data, List params) {
-    data["key"] = params[1];
-    data["resNo"] = params[2];
+    data['key'] = params[1];
+    data['resNo'] = params[2];
   }
 
   @override
   String onDownloadPath(List params) => params[0];
 
   @override
-  String onUrl(List params) => "https://api.example.com/test.jpg";
+  String onUrl(List params) => 'https://api.example.com/test.jpg';
 }
