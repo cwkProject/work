@@ -388,7 +388,8 @@ abstract class Work<D, T extends WorkData<D>> {
   /// * 如果需要使用其他数据类型作为请求参数，请返回新的数据集合对象，支持[Map]，[List]，[String]([ResponseType.plain])
   /// 不返回参数或返回null则继续使用[data]作为请求参数
   @protected
-  FutureOr<dynamic> onPostFillParams(Map<String, dynamic> data, List params) => null;
+  FutureOr<dynamic> onPostFillParams(Map<String, dynamic> data, List params) =>
+      null;
 
   /// 创建并填充请求头
   ///
@@ -465,7 +466,8 @@ abstract class Work<D, T extends WorkData<D>> {
       }
     } else if (data.response.errorType == HttpErrorType.response) {
       // 网络请求失败
-      log(tag, '_onParseResponse network request false onNetworkRequestFailed invoke');
+      log(tag,
+          '_onParseResponse network request false onNetworkRequestFailed invoke');
 
       // 网络请求失败回调
       final networkRequestFailed = onNetworkRequestFailed(data);
@@ -492,7 +494,8 @@ abstract class Work<D, T extends WorkData<D>> {
   Future<bool> _onParse(T data) async {
     log(tag, '_onParse start');
     final checkResponse = onCheckResponse(data);
-    final checkResponseResult = (checkResponse is Future<bool>) ? await checkResponse : checkResponse;
+    final checkResponseResult =
+        (checkResponse is Future<bool>) ? await checkResponse : checkResponse;
     if (!checkResponseResult) {
       // 通信异常
       log(tag, '_onParse response body error');

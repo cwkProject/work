@@ -26,7 +26,8 @@ Future<FormData> convertToDio(Map<String, dynamic> src) async {
   for (final entry in src.entries) {
     if (entry.value is List) {
       params[entry.key] =
-          await Stream.fromFutures(entry.value.map<Future<dynamic>>(onConvert)).toList();
+          await Stream.fromFutures(entry.value.map<Future<dynamic>>(onConvert))
+              .toList();
     } else {
       params[entry.key] = await onConvert(entry.value);
     }

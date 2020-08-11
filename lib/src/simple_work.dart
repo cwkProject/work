@@ -58,7 +58,8 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   SimpleWorkData<D> onCreateWorkData() => SimpleWorkData<D>();
 
   @override
-  FutureOr<bool> onCheckResponse(SimpleWorkData<D> data) => data.response.data != null;
+  FutureOr<bool> onCheckResponse(SimpleWorkData<D> data) =>
+      data.response.data != null;
 
   @override
   FutureOr<D> onResponseSuccess(SimpleWorkData<D> data) {
@@ -70,7 +71,8 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   }
 
   @override
-  FutureOr<bool> onResponseResult(SimpleWorkData<D> data) => data.response.data['state'];
+  FutureOr<bool> onResponseResult(SimpleWorkData<D> data) =>
+      data.response.data['state'];
 
   @mustCallSuper
   @override
@@ -83,10 +85,12 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   }
 
   @override
-  FutureOr<String> onRequestSuccessMessage(SimpleWorkData<D> data) => data.response.data['message'];
+  FutureOr<String> onRequestSuccessMessage(SimpleWorkData<D> data) =>
+      data.response.data['message'];
 
   @override
-  FutureOr<String> onRequestFailedMessage(SimpleWorkData<D> data) => data.response.data['message'];
+  FutureOr<String> onRequestFailedMessage(SimpleWorkData<D> data) =>
+      data.response.data['message'];
 
   /// 生成响应成功的结果数据
   ///
