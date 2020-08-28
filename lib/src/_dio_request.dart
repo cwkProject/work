@@ -128,7 +128,7 @@ com.HttpErrorType _onConvertErrorType(dio.DioErrorType type) {
 
 /// 生成dio专用配置
 dio.Options _onConfigOptions(String tag, com.Options options) {
-  final dioOptions = dio.Options();
+  final dioOptions = dio.RequestOptions();
 
   switch (options.method) {
     case com.HttpMethod.get:
@@ -174,6 +174,7 @@ dio.Options _onConfigOptions(String tag, com.Options options) {
   dioOptions.contentType = options.contentType;
   dioOptions.receiveTimeout = options.readTimeout;
   dioOptions.sendTimeout = options.sendTimeout;
+  dioOptions.connectTimeout = options.connectTimeout;
 
   if (options.cancelToken.data is! dio.CancelToken) {
     final cancelToken = options.cancelToken;
