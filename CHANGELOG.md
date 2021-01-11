@@ -1,3 +1,7 @@
+## [0.5.6] - 2021/1/11
+
+* 增加flutter环境依赖，将日志输出从`print`重定向到`debugPrint`
+
 ## [0.5.5] - 2020/8/28
 
 * 修复`Work`子类中重设`Options.connectTimeout`没有生效的bug

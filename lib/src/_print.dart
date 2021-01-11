@@ -2,6 +2,8 @@
 
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
+
 import 'work_config.dart';
 
 /// 每次打印的最大长度
@@ -18,7 +20,7 @@ void log(String tag, String message, [Object data]) {
   final finalMessage = '$message ${data ?? ''}';
 
   for (final it in _wrap(finalMessage)) {
-    print('$tag: $it');
+    debugPrint('$tag: $it');
   }
 }
 
