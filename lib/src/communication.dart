@@ -25,8 +25,7 @@ class Communication {
   ///
   /// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回响应数据
   Future<Response> request(String tag, Options options) async {
-    if (!options.url.startsWith(RegExp(r'https?://')) &&
-        dio.options.baseUrl == null) {
+    if (!options.url.startsWith(RegExp(r'https?://')) && dio.options.baseUrl == null) {
       // 地址不合法
       log(tag, 'url error');
       return Response(errorType: HttpErrorType.other);
@@ -50,8 +49,7 @@ class Communication {
 
     // 转换类型
     if (response.success &&
-        (options.responseType == null ||
-            options.responseType == ResponseType.json) &&
+        (options.responseType == null || options.responseType == ResponseType.json) &&
         response.data is String &&
         response.data.isNotEmpty) {
       response.data = json.decode(response.data);
@@ -168,11 +166,14 @@ class Response {
     return stringBuffer.toString();
   }
 
+  /// 将[body]转换为显示字符串
+  String get _bodyToString => data is List<int> ? 'bytes ${data.length}' : data;
+
   @override
   String toString() => '''response 
 success: $success; code: $statusCode;
 headers: $_headersToString;
-body: $data''';
+body: $_bodyToString''';
 }
 
 /// 取消请求工具
@@ -194,8 +195,7 @@ class CancelToken {
 
 /// 描述要上传的文件信息
 class UploadFileInfo {
-  UploadFileInfo._raw(
-      {this.stream, this.length, this.filePath, this.fileName, this.mimeType});
+  UploadFileInfo._raw({this.stream, this.length, this.filePath, this.fileName, this.mimeType});
 
   /// 使用[filePath]创建上传文件
   ///
@@ -205,16 +205,11 @@ class UploadFileInfo {
 
     mimeType ??= lookupMimeType(fileName);
 
-    return UploadFileInfo._raw(
-        stream: null,
-        filePath: filePath,
-        fileName: fileName,
-        mimeType: mimeType);
+    return UploadFileInfo._raw(stream: null, filePath: filePath, fileName: fileName, mimeType: mimeType);
   }
 
   /// 使用文件的字节流[bytes]创建上传文件
-  factory UploadFileInfo.bytes(List<int> bytes,
-      {String fileName, String mimeType}) {
+  factory UploadFileInfo.bytes(List<int> bytes, {String fileName, String mimeType}) {
     return UploadFileInfo._raw(
         stream: Stream.fromIterable([bytes]),
         length: bytes.length,
@@ -224,14 +219,8 @@ class UploadFileInfo {
   }
 
   /// 使用文件的字节流[stream]创建上传文件
-  factory UploadFileInfo.stream(Stream<List<int>> stream, int length,
-      {String fileName, String mimeType}) {
-    return UploadFileInfo._raw(
-        stream: stream,
-        length: length,
-        filePath: null,
-        fileName: fileName,
-        mimeType: mimeType);
+  factory UploadFileInfo.stream(Stream<List<int>> stream, int length, {String fileName, String mimeType}) {
+    return UploadFileInfo._raw(stream: stream, length: length, filePath: null, fileName: fileName, mimeType: mimeType);
   }
 
   /// 文件字节流
@@ -255,8 +244,7 @@ class UploadFileInfo {
   final String mimeType;
 
   @override
-  String toString() =>
-      "UploadFileInfo:'$filePath' fileName:$fileName mimeType:$mimeType";
+  String toString() => "UploadFileInfo:'$filePath' fileName:$fileName mimeType:$mimeType";
 }
 
 /// 响应数据格式
