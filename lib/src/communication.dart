@@ -167,7 +167,7 @@ class Response {
   }
 
   /// 将[body]转换为显示字符串
-  String get _bodyToString => data is List<int> ? 'bytes ${data.length}' : data;
+  dynamic get _bodyToString => data is List<int> ? 'bytes ${data.length}' : data;
 
   @override
   String toString() => '''response 
