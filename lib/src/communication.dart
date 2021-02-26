@@ -114,8 +114,14 @@ class Options {
   /// 下载文件的存放路径，仅[HttpMethod.download]中有效
   String downloadPath;
 
-  /// 用于取消本次请求的工具，由系统管理，无法被覆盖
+  /// 用于取消本次请求的工具，由框架管理，无法被覆盖
   CancelToken cancelToken;
+
+  /// 用于指定使用的网络全局网络访问器的key
+  ///
+  /// 返回null或key不存在则表示使用默认访问器
+  /// 关联性请查看[work_config.dart]
+  String clientKey;
 
   /// 忽略值为null的参数，即不会被发送
   bool ignoreNull = true;

@@ -41,6 +41,8 @@ Future<com.Response> request(String tag, com.Options options) async {
   final isFormData = options.method == com.HttpMethod.upload ||
       (options.contentType ?? work.dio.options.contentType) == com.formData;
 
+  final client = work.dioMap[options.clientKey] ?? work.dio;
+
   try {
     switch (options.method) {
       case com.HttpMethod.download:
@@ -52,14 +54,14 @@ Future<com.Response> request(String tag, com.Options options) async {
           options.onReceiveProgress?.call(receive, total);
         };
 
-        dioResponse = await work.dio.download(options.url, options.downloadPath,
+        dioResponse = await client.download(options.url, options.downloadPath,
             data: options.params,
             cancelToken: options.cancelToken.data,
             options: dioOptions,
             onReceiveProgress: onReceiveProgress);
         break;
       case com.HttpMethod.get:
-        dioResponse = await work.dio.get(
+        dioResponse = await client.get(
           options.url,
           queryParameters: options.params,
           cancelToken: options.cancelToken.data,
@@ -68,7 +70,7 @@ Future<com.Response> request(String tag, com.Options options) async {
         );
         break;
       default:
-        dioResponse = await work.dio.request(
+        dioResponse = await client.request(
           options.url,
           data:
               isFormData ? await convertToDio(options.params) : options.params,

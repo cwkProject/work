@@ -4,8 +4,7 @@
 
 * 封装http业务接口协议，提供有限的扩展功能，隔离http底层实现方法(当前基于dio)，与公司http规范紧密结合，规范团队成员接口编写和使用方式。
 * 核心设计理念为封装http接口的请求数据和响应数据的序列化和反序列化，接口调用处不能出现任何解析http数据的代码。
-装配和解析代码应该全部由`Work`类完成，接口调用处使用一致的调用方式，无需关心http的实现方式和接口参数名称和类型，
-仅仅需要注意参数顺序和实现的`Work`类保持一致。
+装配和解析代码应该全部由`Work`类完成，接口调用处使用一致的调用方式，无需关心http的实现方式和接口参数拼装细节，
 * 此设计的缺点是丢弃了一些不常用的http底层实现工具的灵活扩展功能，
 优点是规范团队接口编写方式，统一项目http接口代码风格。
 
@@ -39,25 +38,40 @@
 
 ```
 
+@JsonSerializable()
 class LoginWork extends SimpleWork<User> {
+  LoginWork({this.username, this.password});
+  
+  final String username;
+  
+  final String password;
+
+  String get device => Platform.isIOS ? "Ios" : "Android";
+  
   @override
   User onExtractResult(resultData,SimpleWorkData<User> data) => User.fromJson(resultData);
   // 解析响应数据
 
+  /// 装配请求参数
+  /// 
+  /// 返回发送的参数集合，可以和[json_serializable]库配合使用，也可以简单的直接拼装
   @override
-  void onFillParams(Map<String, dynamic> data, List params) {
-    // 装配请求参数，data为最终要发送的参数集合，params为[Work]调用处端传入的参数列表
-    data["username"] = params[0]
-      ..["password"] = params[1]
-      ..["device"] = Platform.isIOS ? "Ios" : "Android";
-  }
+  Map<String, dynamic> onFillParams() => _$LoginWorkToJson(this);
+  // 简单的参数直接拼接
+  // @override
+  // Map<String, dynamic> onFillParams() => {
+  //  'username': username,
+  //  'password': password,
+  //  'device': device,
+  // };
+  //
 
   @override
-  String onUrl(List params) => "https://xxx/user/login";  
+  String onUrl() => "https://xxx/user/login";
   // 地址可以是完整地址，支持baseUrl，需调用[mergeBaseOptions]设置
 
   @override
-  HttpMethod get httpMethod => HttpMethod.post; // 使用post请求
+  HttpMethod onHttpMethod() => HttpMethod.post; // 使用post请求
 }
 
 ```
@@ -66,9 +80,9 @@ class LoginWork extends SimpleWork<User> {
 
 ```
 
-// 有序的参数传入，位置可选参数，[params]为任务参数列表，[retry]为重试次数，
+// 创建work实例并执行start发起请求，一个work实例仅能执行一次请求，多次调用start总是返回第一次执行的Future
 // [onProgress]为进度监听器，在[HttpMethod.download]请求中为下载进度，在其他类型请求中为上传/发送进度。
-LoginWork().start(["user1","123456"]).then((data){
+LoginWork(username: 'user1', password: '123456').start().then((data){
    // start方法返回Future<T> ，T为[SimpleWorkData]类
 
    if (data.success){

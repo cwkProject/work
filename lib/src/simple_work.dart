@@ -6,9 +6,6 @@ import 'package:meta/meta.dart';
 import 'communication.dart';
 import 'work_core.dart';
 
-/// 用于获取响应json数据协议中"result"字段
-const String result = 'result';
-
 /// 简化的[WorkData]类实现
 ///
 /// 使用特定的公司接口协议描述。
@@ -54,6 +51,9 @@ class SimpleWorkData<T> extends WorkData<T> {
 ///
 /// ```
 abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
+  /// 用于获取响应json数据协议中"result"字段
+  static const String result = 'result';
+
   @override
   SimpleWorkData<D> onCreateWorkData() => SimpleWorkData<D>();
 
@@ -97,14 +97,14 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   /// * [resultData]为协议中的[result]标签下的数据
   /// * 当请求成功且返回结果中存在[result]标签且不为null时被调用
   /// * 返回装配后的本地数据对象
-  /// * [data]为将要返回的数据包装类，包含有传入的参数[data.params]
+  /// * [data]为将要返回的数据包装类
   @protected
   FutureOr<D> onExtractResult(resultData, SimpleWorkData<D> data);
 
   /// 生成响应成功的默认结果数据
   ///
   /// * 当请求成功且返回结果不存在[result]标签或值为null时被调用，默认实现为null
-  /// * [data]为将要返回的数据包装类，包含有传入的参数[data.params]
+  /// * [data]为将要返回的数据包装类
   @protected
   FutureOr<D> onDefaultResult(SimpleWorkData<D> data) => null;
 }
@@ -123,16 +123,21 @@ abstract class SimpleDownloadWork extends Work<void, SimpleWorkData<void>> {
   FutureOr<bool> onResponseResult(SimpleWorkData<void> data) => true;
 
   @override
-  HttpMethod get httpMethod => HttpMethod.download;
+  HttpMethod onHttpMethod() => HttpMethod.download;
 
   @mustCallSuper
   @override
-  FutureOr<void> onConfigOptions(Options options, List params) {
-    options.downloadPath = onDownloadPath(params);
+  FutureOr<void> onConfigOptions(Options options) {
+    final downloadPath = onDownloadPath();
+    if (downloadPath is Future<String>) {
+      return downloadPath.then((value) {
+        options.downloadPath = value;
+      });
+    } else {
+      options.downloadPath = downloadPath;
+    }
   }
 
-  /// 设置下载文件路径
-  ///
-  /// [params]为任务传入参数，返回下载文件要保存的位置路径
-  FutureOr<String> onDownloadPath(List params);
+  /// 返回下载文件路径
+  FutureOr<String> onDownloadPath();
 }

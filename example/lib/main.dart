@@ -1,7 +1,10 @@
 import 'package:work/work.dart';
+import 'package:json_annotation/json_annotation.dart';
+
+part 'main.g.dart';
 
 void main() async {
-  final data = await TestWork().start(['xxx']);
+  final data = await TestWork('xxx').start();
 
   if (data.success) {
     print(data.result);
@@ -10,11 +13,11 @@ void main() async {
     print(data.errorCode);
   }
 
-  final download = await DownloadWork().start([
-    'file:/xxx/test.jpg',
-    'key',
-    123,
-  ]);
+  final download = await DownloadWork(
+    path: 'file:/xxx/test.jpg',
+    key: 'key',
+    resNo: 123,
+  ).start();
 
   if (download.success) {
     // show('file:/xxx/test.jpg')
@@ -22,16 +25,19 @@ void main() async {
 }
 
 class TestWork extends SimpleWork<String> {
+  TestWork(this.param1);
+
+  /// 请求参数1
+  final String param1;
+
   @override
   String onExtractResult(resultData, data) => resultData['account'];
 
   @override
-  String onUrl(List params) => 'https://api.example.com/test';
+  String onUrl() => 'https://api.example.com/test';
 
   @override
-  void onFillParams(Map<String, dynamic> data, List params) {
-    data['param1'] = params[0];
-  }
+  Map<String, dynamic> onFillParams() => {'param1': param1};
 
   @override
   String onNetworkError(data) => '网络连接失败，当前网络不可用';
@@ -49,16 +55,62 @@ class TestWork extends SimpleWork<String> {
   String onRequestSuccessMessage(data) => data.response.data['message'] ?? '';
 }
 
+@JsonSerializable()
 class DownloadWork extends SimpleDownloadWork {
-  @override
-  void onFillParams(Map<String, dynamic> data, List params) {
-    data['key'] = params[1];
-    data['resNo'] = params[2];
-  }
+  DownloadWork({this.path, this.key, this.resNo});
+
+  /// 存放路径
+  @JsonKey(ignore: true)
+  final String path;
+
+  /// 请求参数key
+  final String key;
+
+  /// 请求参数resNo
+  final int resNo;
 
   @override
-  String onDownloadPath(List params) => params[0];
+  Map<String, dynamic> onFillParams() => _$DownloadWorkToJson(this);
 
   @override
-  String onUrl(List params) => 'https://api.example.com/test.jpg';
+  String onDownloadPath() => path;
+
+  @override
+  String onUrl() => 'https://api.example.com/test.jpg';
+}
+
+@JsonSerializable()
+class LoginWork extends SimpleWork<User> {
+  LoginWork({this.username, this.password});
+
+  final String username;
+
+  final String password;
+
+  String get device => Platform.isIOS ? "Ios" : "Android";
+
+  @override
+  User onExtractResult(resultData,SimpleWorkData<User> data) => User.fromJson(resultData);
+  // 解析响应数据
+
+  /// 装配请求参数
+  ///
+  /// 返回发送的参数集合，可以和[json_serializable]库配合使用，也可以简单的直接拼装
+  @override
+  Map<String, dynamic> onFillParams() => _$LoginWorkToJson(this);
+  // 简单的参数直接拼接
+  // @override
+  // Map<String, dynamic> onFillParams() => {
+  //  'username': username,
+  //  'password': password,
+  //  'device': device,
+  // };
+  //
+
+  @override
+  String onUrl() => "https://xxx/user/login";
+  // 地址可以是完整地址，支持baseUrl，需调用[mergeBaseOptions]设置
+
+  @override
+  HttpMethod onHttpMethod() => HttpMethod.post; // 使用post请求
 }
