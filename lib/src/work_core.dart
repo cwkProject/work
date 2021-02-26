@@ -89,7 +89,7 @@ abstract class Work<D, T extends WorkData<D>> {
   bool _cancelMark = false;
 
   /// 取消请求工具
-  final CancelToken _cancelToken = CancelToken();
+  CancelToken _cancelToken;
 
   /// 启动的任务计数器
   int _counter = 0;
@@ -269,7 +269,7 @@ abstract class Work<D, T extends WorkData<D>> {
       await configOptions;
     }
 
-    options.cancelToken = _cancelToken;
+    options.cancelToken = _cancelToken = CancelToken();
 
     return options;
   }
@@ -661,6 +661,6 @@ abstract class Work<D, T extends WorkData<D>> {
       return;
     }
     _cancelMark = true;
-    _cancelToken.cancel();
+    _cancelToken?.cancel();
   }
 }

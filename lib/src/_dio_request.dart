@@ -181,10 +181,10 @@ dio.Options _onConfigOptions(String tag, com.Options options) {
 
     cancelToken.data = dio.CancelToken();
 
-    cancelToken.stream.listen((_) {
+    cancelToken.whenCancel.then((_) {
       if (cancelToken.data is dio.CancelToken) {
         log(tag, 'http cancel');
-        cancelToken.data.cancel();
+        cancelToken.data?.cancel();
         cancelToken.data = null;
       }
     });

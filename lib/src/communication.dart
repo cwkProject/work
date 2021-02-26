@@ -182,17 +182,17 @@ body: $_bodyToString''';
 /// 取消请求工具
 class CancelToken {
   /// 用于发射取消请求
-  final StreamController<void> _controller = StreamController.broadcast();
+  final _completer = Completer();
 
   /// 用于接收取消请求事件
-  Stream<void> get stream => _controller.stream;
+  Future<void> get whenCancel => _completer.future;
 
   /// 用于特定取消实现关联对象使用
   dynamic data;
 
   /// 取消请求
   void cancel() {
-    _controller.add(null);
+    _completer.complete();
   }
 }
 
