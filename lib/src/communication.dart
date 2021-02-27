@@ -269,6 +269,12 @@ class UploadFileInfo {
       "UploadFileInfo:'$filePath' fileName:$fileName mimeType:$mimeType";
 }
 
+/// 用于[json_annotation]库序列化标记需要上传的文件类型参数转换
+///
+/// 支持[File]和[UploadFileInfo]类型标记
+/// 通常标记为 @JsonKey(toJson: workFileToJsonConvert)
+dynamic workFileToJsonConvert(dynamic file) => file;
+
 /// 响应数据格式
 enum ResponseType {
   /// json类型

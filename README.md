@@ -8,6 +8,8 @@
 * 此设计的缺点是丢弃了一些不常用的http底层实现工具的灵活扩展功能，
 优点是规范团队接口编写方式，统一项目http接口代码风格。
 
+## 与1.0.0以下版本不兼容
+
 ## Usage
 * [添加 `work` 到 pubspec.yaml 文件](https://flutter.io/platform-plugins/).
 * `import 'package:work/work.dart';`
@@ -33,6 +35,8 @@
 继承公司http规范基类，比如`SimpleWork<T>`。
 
 `<T>`为真正需要返回的数据模型类
+
+1.0.0版开始数据填充接口`onFillParams`签名变更，使用更加友好，同时更方便与[json_serializable](https://pub.dev/packages/json_serializable) 库结合使用
 
 示例
 

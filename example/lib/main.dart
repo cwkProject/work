@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:work/work.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -21,6 +23,12 @@ void main() async {
 
   if (download.success) {
     // show('file:/xxx/test.jpg')
+  }
+
+  final upload = await UploadWork(File('test.jpg')).start();
+
+  if (data.success) {
+    print(data.result);
   }
 }
 
@@ -80,37 +88,20 @@ class DownloadWork extends SimpleDownloadWork {
 }
 
 @JsonSerializable()
-class LoginWork extends SimpleWork<User> {
-  LoginWork({this.username, this.password});
+class UploadWork extends SimpleWork<String> {
+  UploadWork(this.file);
 
-  final String username;
+  /// 需要上传的文件
+  @JsonKey(toJson: workFileToJsonConvert)
+  final File file;
 
-  final String password;
-
-  String get device => Platform.isIOS ? "Ios" : "Android";
+  /// 假设返回的结果"result"标签对应的是文件的网络地址
+  @override
+  String onExtractResult(resultData, data) => resultData;
 
   @override
-  User onExtractResult(resultData,SimpleWorkData<User> data) => User.fromJson(resultData);
-  // 解析响应数据
-
-  /// 装配请求参数
-  ///
-  /// 返回发送的参数集合，可以和[json_serializable]库配合使用，也可以简单的直接拼装
-  @override
-  Map<String, dynamic> onFillParams() => _$LoginWorkToJson(this);
-  // 简单的参数直接拼接
-  // @override
-  // Map<String, dynamic> onFillParams() => {
-  //  'username': username,
-  //  'password': password,
-  //  'device': device,
-  // };
-  //
+  String onUrl() => 'https://api.example.com/upload';
 
   @override
-  String onUrl() => "https://xxx/user/login";
-  // 地址可以是完整地址，支持baseUrl，需调用[mergeBaseOptions]设置
-
-  @override
-  HttpMethod onHttpMethod() => HttpMethod.post; // 使用post请求
+  Map<String, dynamic> onFillParams() => _$UploadWorkToJson(this);
 }
