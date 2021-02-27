@@ -1,3 +1,13 @@
+## [1.0.0] - 2021/2/26
+
+* BREAKING: 与1.0.0以下版本不兼容
+* BREAKING: 重构了`work`核心流程，`Work`实例改为由用户定义构造函数参数的方式来传入请求参数，`start`函数不再需要传递参数
+* BREAKING: 同一个`work`实例不再支持重复发送请求，多次请求请创建新的`Work`实例
+* BREAKING: 参数填充生命周期方法`onFillParams`和`onPreFillParams`签名变更，方便支持与[json_serializable](https://pub.dev/packages/json_serializable) 库协作填充参数
+* BREAKING: 为了兼容[json_serializable](https://pub.dev/packages/json_serializable) 库，原`httpMethod`方法更名为`onHttpMethod`
+* BREAKING: 全生命周期函数移除`params`传入参数，新版中`Work`的请求参数请在具体的接口实现类中声明类属性的方式实现
+* 支持复数的自定义全局`dio`网络客户端实例，通过`Work`复写`onClientKey`来指定
+
 ## [0.6.0] - 2021/2/26
 
 * 修复`CancelToken`导致的`Stream`未关闭问题

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:work/work.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -21,6 +23,12 @@ void main() async {
 
   if (download.success) {
     // show('file:/xxx/test.jpg')
+  }
+
+  final upload = await UploadWork(File('test.jpg')).start();
+
+  if (data.success) {
+    print(data.result);
   }
 }
 
@@ -49,15 +57,15 @@ class TestWork extends SimpleWork<String> {
   String onParseFailed(data) => '请求失败，服务器异常';
 
   @override
-  String onRequestFailedMessage(data) => data.response!.data['message'] ?? '操作失败';
+  String onRequestFailedMessage(data) => data.response.data['message'] ?? '操作失败';
 
   @override
-  String onRequestSuccessMessage(data) => data.response!.data['message'] ?? '';
+  String onRequestSuccessMessage(data) => data.response.data['message'] ?? '';
 }
 
 @JsonSerializable()
 class DownloadWork extends SimpleDownloadWork {
-  DownloadWork({required this.path,required this.key,required this.resNo});
+  DownloadWork({this.path, this.key, this.resNo});
 
   /// 存放路径
   @JsonKey(ignore: true)
@@ -77,4 +85,23 @@ class DownloadWork extends SimpleDownloadWork {
 
   @override
   String onUrl() => 'https://api.example.com/test.jpg';
+}
+
+@JsonSerializable()
+class UploadWork extends SimpleWork<String> {
+  UploadWork(this.file);
+
+  /// 需要上传的文件
+  @JsonKey(toJson: workFileToJsonConvert)
+  final File file;
+
+  /// 假设返回的结果"result"标签对应的是文件的网络地址
+  @override
+  String onExtractResult(resultData, data) => resultData;
+
+  @override
+  String onUrl() => 'https://api.example.com/upload';
+
+  @override
+  Map<String, dynamic> onFillParams() => _$UploadWorkToJson(this);
 }
