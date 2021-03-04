@@ -12,7 +12,7 @@ const _logBufferSize = 800;
 /// 输出日志
 ///
 /// [tag]日志标签，[message]日志内容，额外数据
-void log(String tag, String message, [Object data]) {
+void log(String tag, String? message, [Object? data]) {
   if (!debugWork) {
     return;
   }

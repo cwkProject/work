@@ -49,15 +49,15 @@ class TestWork extends SimpleWork<String> {
   String onParseFailed(data) => '请求失败，服务器异常';
 
   @override
-  String onRequestFailedMessage(data) => data.response.data['message'] ?? '操作失败';
+  String onRequestFailedMessage(data) => data.response!.data['message'] ?? '操作失败';
 
   @override
-  String onRequestSuccessMessage(data) => data.response.data['message'] ?? '';
+  String onRequestSuccessMessage(data) => data.response!.data['message'] ?? '';
 }
 
 @JsonSerializable()
 class DownloadWork extends SimpleDownloadWork {
-  DownloadWork({this.path, this.key, this.resNo});
+  DownloadWork({required this.path,required this.key,required this.resNo});
 
   /// 存放路径
   @JsonKey(ignore: true)
@@ -77,40 +77,4 @@ class DownloadWork extends SimpleDownloadWork {
 
   @override
   String onUrl() => 'https://api.example.com/test.jpg';
-}
-
-@JsonSerializable()
-class LoginWork extends SimpleWork<User> {
-  LoginWork({this.username, this.password});
-
-  final String username;
-
-  final String password;
-
-  String get device => Platform.isIOS ? "Ios" : "Android";
-
-  @override
-  User onExtractResult(resultData,SimpleWorkData<User> data) => User.fromJson(resultData);
-  // 解析响应数据
-
-  /// 装配请求参数
-  ///
-  /// 返回发送的参数集合，可以和[json_serializable]库配合使用，也可以简单的直接拼装
-  @override
-  Map<String, dynamic> onFillParams() => _$LoginWorkToJson(this);
-  // 简单的参数直接拼接
-  // @override
-  // Map<String, dynamic> onFillParams() => {
-  //  'username': username,
-  //  'password': password,
-  //  'device': device,
-  // };
-  //
-
-  @override
-  String onUrl() => "https://xxx/user/login";
-  // 地址可以是完整地址，支持baseUrl，需调用[mergeBaseOptions]设置
-
-  @override
-  HttpMethod onHttpMethod() => HttpMethod.post; // 使用post请求
 }

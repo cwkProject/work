@@ -8,13 +8,14 @@ import 'communication.dart';
 ///
 /// [src]原始参数，返回处理后的符合dio接口的参数
 Future<FormData> convertToDio(Map<String, dynamic> src) async {
-  Future<dynamic> onConvert(value) async {
+  Future<dynamic> onConvert(dynamic value) async {
     if (value is UploadFileInfo) {
       return MultipartFile(
-        value.stream,
-        value.length,
+        value.stream!,
+        value.length!,
         filename: value.fileName,
-        contentType: MediaType.parse(value.mimeType),
+        contentType:
+            value.mimeType != null ? MediaType.parse(value.mimeType!) : null,
       );
     }
 

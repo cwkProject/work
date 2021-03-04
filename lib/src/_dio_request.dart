@@ -21,11 +21,11 @@ import '_convert.dart'
 Future<com.Response> request(String tag, com.Options options) async {
   final dioOptions = _onConfigOptions(tag, options);
 
-  dio.Response dioResponse;
+  dio.Response? dioResponse;
 
   var success = false;
 
-  com.HttpErrorType errorType;
+  com.HttpErrorType? errorType;
 
   // 总接收字节数
   var receiveByteCount = 0;
@@ -97,9 +97,9 @@ Future<com.Response> request(String tag, com.Options options) async {
   if (dioResponse != null) {
     return com.Response(
       success: success,
-      statusCode: dioResponse.statusCode,
-      headers: dioResponse.headers?.map,
-      data: dioResponse.request?.responseType == dio.ResponseType.stream
+      statusCode: dioResponse.statusCode ?? 0,
+      headers: dioResponse.headers.map,
+      data: dioResponse.request.responseType == dio.ResponseType.stream
           ? dioResponse.data.stream
           : dioResponse.data,
       errorType: errorType,
@@ -113,15 +113,15 @@ Future<com.Response> request(String tag, com.Options options) async {
 /// 转换dio异常类型到work库异常类型
 com.HttpErrorType _onConvertErrorType(dio.DioErrorType type) {
   switch (type) {
-    case dio.DioErrorType.CONNECT_TIMEOUT:
+    case dio.DioErrorType.connectTimeout:
       return com.HttpErrorType.connectTimeout;
-    case dio.DioErrorType.SEND_TIMEOUT:
+    case dio.DioErrorType.sendTimeout:
       return com.HttpErrorType.sendTimeout;
-    case dio.DioErrorType.RECEIVE_TIMEOUT:
+    case dio.DioErrorType.receiveTimeout:
       return com.HttpErrorType.receiveTimeout;
-    case dio.DioErrorType.RESPONSE:
+    case dio.DioErrorType.response:
       return com.HttpErrorType.response;
-    case dio.DioErrorType.CANCEL:
+    case dio.DioErrorType.cancel:
       return com.HttpErrorType.cancel;
     default:
       return com.HttpErrorType.other;
@@ -130,7 +130,7 @@ com.HttpErrorType _onConvertErrorType(dio.DioErrorType type) {
 
 /// 生成dio专用配置
 dio.Options _onConfigOptions(String tag, com.Options options) {
-  final dioOptions = dio.RequestOptions();
+  final dioOptions = dio.Options();
 
   switch (options.method) {
     case com.HttpMethod.get:
@@ -153,7 +153,7 @@ dio.Options _onConfigOptions(String tag, com.Options options) {
   }
 
   if (options.responseType != null) {
-    switch (options.responseType) {
+    switch (options.responseType!) {
       case com.ResponseType.json:
         dioOptions.responseType = dio.ResponseType.json;
         break;
@@ -168,29 +168,20 @@ dio.Options _onConfigOptions(String tag, com.Options options) {
         break;
     }
   }
-
-  if (options.headers != null) {
-    dioOptions.headers.addAll(options.headers);
-  }
+  dioOptions.headers = options.headers;
 
   dioOptions.contentType = options.contentType;
   dioOptions.receiveTimeout = options.readTimeout;
   dioOptions.sendTimeout = options.sendTimeout;
-  dioOptions.connectTimeout = options.connectTimeout;
 
-  if (options.cancelToken.data is! dio.CancelToken) {
-    final cancelToken = options.cancelToken;
+  options.cancelToken.data = dio.CancelToken();
 
-    cancelToken.data = dio.CancelToken();
-
-    cancelToken.whenCancel.then((_) {
-      if (cancelToken.data is dio.CancelToken) {
-        log(tag, 'http cancel');
-        cancelToken.data?.cancel();
-        cancelToken.data = null;
-      }
-    });
-  }
+  options.cancelToken.whenCancel.then((cancelToken) {
+    if (cancelToken is dio.CancelToken && !cancelToken.isCancelled) {
+      log(tag, 'http cancel');
+      cancelToken.cancel();
+    }
+  });
 
   return dioOptions;
 }

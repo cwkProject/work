@@ -26,7 +26,7 @@ class Communication {
   /// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回响应数据
   Future<Response> request(String tag, Options options) async {
     if (!options.url.startsWith(RegExp(r'https?://')) &&
-        dio.options.baseUrl == null) {
+        dio.options.baseUrl.isEmpty) {
       // 地址不合法
       log(tag, 'url error');
       return Response(errorType: HttpErrorType.other);
@@ -35,16 +35,19 @@ class Communication {
     log(tag, 'http', options);
 
     Response response;
-    for (var i = 0; i <= options.retry; i++) {
+
+    var i = 0;
+
+    do {
       if (i > 0) {
         log(tag, 'retry ', i);
       }
       response = await http.request(tag, options);
-
       if (response.success) {
         break;
       }
-    }
+      i++;
+    } while (i <= options.retry);
 
     log(tag, 'http', response);
 
@@ -63,11 +66,14 @@ class Communication {
 
 /// 请求配置信息
 class Options {
-  /// Http请求方法
-  HttpMethod method;
+  /// 用于取消本次请求的工具，由框架管理，无法被覆盖
+  final cancelToken = CancelToken();
 
   /// 完整的请求地址（包含http(s)://），或者是相对地址（需调用过[mergeBaseOptions]设置全局根地址[baseUrl]）
-  String url;
+  late String url;
+
+  /// Http请求方法
+  HttpMethod method = HttpMethod.get;
 
   /// 请求重试次数
   ///
@@ -75,53 +81,47 @@ class Options {
   int retry = 0;
 
   /// 发送/上传进度监听器，在[HttpMethod.get]和[HttpMethod.download]中无效
-  OnProgress onSendProgress;
+  OnProgress? onSendProgress;
 
   /// 接收/下载进度监听器
-  OnProgress onReceiveProgress;
+  OnProgress? onReceiveProgress;
 
   /// 自定义/追加的Http请求头
-  Map<String, dynamic> headers;
+  Map<String, dynamic>? headers;
 
   /// 最终用于发送的请求参数
   dynamic params;
 
-  /// 连接服务器超时时间，单位毫秒
-  int connectTimeout;
-
   ///  发送超时
   ///
   ///  传出流上前后两次发送数据的间隔，单位毫秒
-  int sendTimeout;
+  int? sendTimeout;
 
   ///  读取超时
   ///
   ///  响应流上前后两次接受到数据的间隔，单位毫秒
-  int readTimeout;
+  int? readTimeout;
 
   /// 请求的Content-Type
   ///
   /// 默认值'application/x-www-form-urlencoded'
   /// 如果需要formData的表单提交格式，请将该值设置为[formData]
   /// 框架会自动进行表单装配
-  String contentType;
+  String? contentType;
 
   /// [responseType] 表示期望以那种格式(方式)接受响应数据
   ///
   /// 默认值是[ResponseType.json]
-  ResponseType responseType;
+  ResponseType? responseType;
 
   /// 下载文件的存放路径，仅[HttpMethod.download]中有效
-  String downloadPath;
-
-  /// 用于取消本次请求的工具，由框架管理，无法被覆盖
-  CancelToken cancelToken;
+  String? downloadPath;
 
   /// 用于指定使用的网络全局网络访问器的key
   ///
   /// 返回null或key不存在则表示使用默认访问器
   /// 关联性请查看[work_config.dart]
-  String clientKey;
+  String? clientKey;
 
   /// 忽略值为null的参数，即不会被发送
   bool ignoreNull = true;
@@ -129,7 +129,7 @@ class Options {
   @override
   String toString() => '''request 
 $method
-url: ${dio.options.baseUrl ?? ""}$url
+url: ${dio.options.baseUrl}$url
 headers: $headers
 params: $params''';
 }
@@ -151,7 +151,7 @@ class Response {
   dynamic data;
 
   /// 响应头信息
-  Map<String, List<String>> headers;
+  Map<String, List<String>>? headers;
 
   /// 响应状态码
   int statusCode;
@@ -159,15 +159,17 @@ class Response {
   /// 请求成功失败标志
   bool success;
 
-  /// 异常类型，为空表示无异常
-  HttpErrorType errorType;
+  /// 异常类型
+  ///
+  /// null表示无异常
+  HttpErrorType? errorType;
 
   /// 总接收子节数
   int receiveByteCount;
 
   /// 将头信息转换成文本输出
   String get _headersToString {
-    var stringBuffer = StringBuffer();
+    final stringBuffer = StringBuffer();
     headers?.forEach((key, value) {
       value.forEach((e) => stringBuffer.writeln('$key: $e'));
     });
@@ -191,14 +193,14 @@ class CancelToken {
   final _completer = Completer();
 
   /// 用于接收取消请求事件
-  Future<void> get whenCancel => _completer.future;
+  Future<dynamic> get whenCancel => _completer.future;
 
   /// 用于特定取消实现关联对象使用
   dynamic data;
 
   /// 取消请求
   void cancel() {
-    _completer.complete();
+    _completer.complete(data);
   }
 }
 
@@ -210,7 +212,8 @@ class UploadFileInfo {
   /// 使用[filePath]创建上传文件
   ///
   /// 仅native端支持
-  factory UploadFileInfo(String filePath, {String fileName, String mimeType}) {
+  factory UploadFileInfo(String filePath,
+      {String? fileName, String? mimeType}) {
     fileName ??= basename(filePath);
 
     mimeType ??= lookupMimeType(fileName);
@@ -224,7 +227,7 @@ class UploadFileInfo {
 
   /// 使用文件的字节流[bytes]创建上传文件
   factory UploadFileInfo.bytes(List<int> bytes,
-      {String fileName, String mimeType}) {
+      {String? fileName, String? mimeType}) {
     return UploadFileInfo._raw(
         stream: Stream.fromIterable([bytes]),
         length: bytes.length,
@@ -235,7 +238,7 @@ class UploadFileInfo {
 
   /// 使用文件的字节流[stream]创建上传文件
   factory UploadFileInfo.stream(Stream<List<int>> stream, int length,
-      {String fileName, String mimeType}) {
+      {String? fileName, String? mimeType}) {
     return UploadFileInfo._raw(
         stream: stream,
         length: length,
@@ -248,21 +251,21 @@ class UploadFileInfo {
   ///
   /// web端仅支持此模式上传
   /// native端如果[stream]不为null则会忽略[filePath]
-  final Stream<List<int>> stream;
+  final Stream<List<int>>? stream;
 
   /// [stream]中的文件字节流长度
-  final int length;
+  final int? length;
 
   /// 文件路径（不支持web）
-  final String filePath;
+  final String? filePath;
 
   /// 文件名
   ///
   /// 带后缀，用于表示要上传的文件名称，覆盖[filePath]中的文件名
-  final String fileName;
+  final String? fileName;
 
   /// 要上传的文件mime类型
-  final String mimeType;
+  final String? mimeType;
 
   @override
   String toString() =>
