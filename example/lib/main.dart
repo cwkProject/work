@@ -27,8 +27,8 @@ void main() async {
 
   final upload = await UploadWork(File('test.jpg')).start();
 
-  if (data.success) {
-    print(data.result);
+  if (upload.success) {
+    print(upload.result);
   }
 }
 
@@ -57,15 +57,15 @@ class TestWork extends SimpleWork<String> {
   String onParseFailed(data) => '请求失败，服务器异常';
 
   @override
-  String onRequestFailedMessage(data) => data.response.data['message'] ?? '操作失败';
+  String onRequestFailedMessage(data) => data.response!.data['message'] ?? '操作失败';
 
   @override
-  String onRequestSuccessMessage(data) => data.response.data['message'] ?? '';
+  String onRequestSuccessMessage(data) => data.response!.data['message'] ?? '';
 }
 
 @JsonSerializable()
 class DownloadWork extends SimpleDownloadWork {
-  DownloadWork({this.path, this.key, this.resNo});
+  DownloadWork({required this.path,required this.key,required this.resNo});
 
   /// 存放路径
   @JsonKey(ignore: true)
