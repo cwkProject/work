@@ -1,65 +1,19 @@
 // Created by 超悟空 on 2018/9/20.
 
 import 'dart:async';
-import 'dart:convert';
 import 'package:path/path.dart';
-
 import 'package:mime/mime.dart';
-
-import '_dio_request.dart' as http;
-import '_print.dart';
 import 'work_config.dart';
 
 /// 进度监听器
 typedef OnProgress = void Function(int current, int total);
 
-const formData = 'multipart/form-data';
-
-/// 通讯工具
+/// 执行网络请求方法
 ///
-/// 用于进行HTTP请求的工具
-class Communication {
-  const Communication();
+/// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回响应数据
+typedef WorkRequest = Future<Response> Function(String tag, Options options);
 
-  /// 执行网络请求
-  ///
-  /// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回响应数据
-  Future<Response> request(String tag, Options options) async {
-    if (!options.url.startsWith(RegExp(r'https?://')) &&
-        dio.options.baseUrl == null) {
-      // 地址不合法
-      log(tag, 'url error');
-      return Response(errorType: HttpErrorType.other);
-    }
-
-    log(tag, 'http', options);
-
-    Response response;
-    for (var i = 0; i <= options.retry; i++) {
-      if (i > 0) {
-        log(tag, 'retry ', i);
-      }
-      response = await http.request(tag, options);
-
-      if (response.success) {
-        break;
-      }
-    }
-
-    log(tag, 'http', response);
-
-    // 转换类型
-    if (response.success &&
-        (options.responseType == null ||
-            options.responseType == ResponseType.json) &&
-        response.data is String &&
-        response.data.isNotEmpty) {
-      response.data = json.decode(response.data);
-    }
-
-    return response;
-  }
-}
+const formData = 'multipart/form-data';
 
 /// 请求配置信息
 class Options {
@@ -175,8 +129,7 @@ class Response {
   }
 
   /// 将[body]转换为显示字符串
-  dynamic get _bodyToString =>
-      data is List<int> ? 'bytes ${data.length}' : data;
+  dynamic get _bodyToString => data is List<int> ? 'bytes ${data.length}' : data;
 
   @override
   String toString() => '''response 
@@ -204,8 +157,7 @@ class CancelToken {
 
 /// 描述要上传的文件信息
 class UploadFileInfo {
-  UploadFileInfo._raw(
-      {this.stream, this.length, this.filePath, this.fileName, this.mimeType});
+  UploadFileInfo._raw({this.stream, this.length, this.filePath, this.fileName, this.mimeType});
 
   /// 使用[filePath]创建上传文件
   ///
@@ -215,16 +167,11 @@ class UploadFileInfo {
 
     mimeType ??= lookupMimeType(fileName);
 
-    return UploadFileInfo._raw(
-        stream: null,
-        filePath: filePath,
-        fileName: fileName,
-        mimeType: mimeType);
+    return UploadFileInfo._raw(stream: null, filePath: filePath, fileName: fileName, mimeType: mimeType);
   }
 
   /// 使用文件的字节流[bytes]创建上传文件
-  factory UploadFileInfo.bytes(List<int> bytes,
-      {String fileName, String mimeType}) {
+  factory UploadFileInfo.bytes(List<int> bytes, {String fileName, String mimeType}) {
     return UploadFileInfo._raw(
         stream: Stream.fromIterable([bytes]),
         length: bytes.length,
@@ -234,14 +181,8 @@ class UploadFileInfo {
   }
 
   /// 使用文件的字节流[stream]创建上传文件
-  factory UploadFileInfo.stream(Stream<List<int>> stream, int length,
-      {String fileName, String mimeType}) {
-    return UploadFileInfo._raw(
-        stream: stream,
-        length: length,
-        filePath: null,
-        fileName: fileName,
-        mimeType: mimeType);
+  factory UploadFileInfo.stream(Stream<List<int>> stream, int length, {String fileName, String mimeType}) {
+    return UploadFileInfo._raw(stream: stream, length: length, filePath: null, fileName: fileName, mimeType: mimeType);
   }
 
   /// 文件字节流
@@ -265,8 +206,7 @@ class UploadFileInfo {
   final String mimeType;
 
   @override
-  String toString() =>
-      "UploadFileInfo:'$filePath' fileName:$fileName mimeType:$mimeType";
+  String toString() => "UploadFileInfo:'$filePath' fileName:$fileName mimeType:$mimeType";
 }
 
 /// 用于[json_annotation]库序列化标记需要上传的文件类型参数转换

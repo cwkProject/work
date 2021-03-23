@@ -2,7 +2,7 @@
 
 import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart';
-import 'communication.dart';
+import 'work_model.dart';
 
 /// 用于[com.HttpMethod.upload]请求类型的数据转换
 ///

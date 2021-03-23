@@ -5,7 +5,8 @@ import 'dart:async';
 import 'package:meta/meta.dart';
 
 import '_print.dart';
-import 'communication.dart';
+import 'work_model.dart';
+import 'work_config.dart' show workRequest;
 
 /// [Work]返回的数据包装类
 ///
@@ -59,9 +60,6 @@ class WorkData<T> {
   /// 生成本任务数据的原始任务实例
   Work<T, WorkData<T>> get work => _work;
 }
-
-/// 网络请求工具
-const Communication _communication = Communication();
 
 /// 任务流程的基本模型
 ///
@@ -278,19 +276,13 @@ abstract class Work<D, T extends WorkData<D>> {
     }
 
     // 创建网络请求工具
-    Communication communication;
-    final interceptCreateCommunication = onInterceptCreateCommunication(data);
-    if (interceptCreateCommunication is Future<Communication>) {
-      communication = await interceptCreateCommunication ?? _communication;
-    } else {
-      communication = interceptCreateCommunication ?? _communication;
-    }
+    final request = onWorkRequest() ?? workRequest;
 
     if (_cancelMark) {
       return;
     }
 
-    data._response = await communication.request(_tag, data.options);
+    data._response = await request(_tag, data.options);
 
     if (_cancelMark) {
       return;
@@ -383,11 +375,13 @@ abstract class Work<D, T extends WorkData<D>> {
   @protected
   FutureOr<Map<String, dynamic>> onHeaders() => null;
 
-  /// 拦截创建网络请求工具
+  /// 返回请求实现方法
   ///
-  /// 用于创建完全自定义实现的网络请求工具。
+  /// 默认实现为[workRequest]
+  /// 如果要覆盖全局实现，请覆盖[workRequest]
+  /// 如果仅覆盖本任务请重写此方法
   @protected
-  FutureOr<Communication> onInterceptCreateCommunication(T data) => null;
+  WorkRequest onWorkRequest() => workRequest;
 
   /// 即将执行网络请求前的回调
   ///
@@ -432,8 +426,7 @@ abstract class Work<D, T extends WorkData<D>> {
       // 解析数据
       if (await _onParse(data)) {
         // 解析成功
-        log(_tag,
-            '_onParseResponse result parse success onParseSuccess invoke');
+        log(_tag, '_onParseResponse result parse success onParseSuccess invoke');
         // 解析成功回调
         final parseSuccess = onParseSuccess(data);
         if (parseSuccess is Future<void>) {
@@ -459,8 +452,7 @@ abstract class Work<D, T extends WorkData<D>> {
       }
     } else if (data.response.errorType == HttpErrorType.response) {
       // 网络请求失败
-      log(_tag,
-          '_onParseResponse network request false onNetworkRequestFailed invoke');
+      log(_tag, '_onParseResponse network request false onNetworkRequestFailed invoke');
 
       // 网络请求失败回调
       final networkRequestFailed = onNetworkRequestFailed(data);
@@ -487,8 +479,7 @@ abstract class Work<D, T extends WorkData<D>> {
   Future<bool> _onParse(T data) async {
     log(_tag, '_onParse start');
     final checkResponse = onCheckResponse(data);
-    final checkResponseResult =
-        (checkResponse is Future<bool>) ? await checkResponse : checkResponse;
+    final checkResponseResult = (checkResponse is Future<bool>) ? await checkResponse : checkResponse;
     if (!checkResponseResult) {
       // 通信异常
       log(_tag, '_onParse response body error');

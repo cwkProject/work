@@ -1,6 +1,8 @@
 // Created by 超悟空 on 2018/9/20.
 
 import 'package:dio/dio.dart';
+import 'work_model.dart' show WorkRequest;
+import '_communication.dart' as com;
 
 /// 表单提交格式
 ///
@@ -79,3 +81,6 @@ void mergeBaseOptions({
     responseDecoder: responseDecoder,
   );
 }
+
+/// 全局实际执行网络请求的方法
+WorkRequest workRequest = com.workRequest;

@@ -6,7 +6,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart' as dio;
 
 import '_print.dart';
-import 'communication.dart' as com;
+import 'work_model.dart' as com;
 import 'work_config.dart' as work;
 
 import '_convert.dart'
