@@ -18,6 +18,4 @@ dependencies:
   mime: ^0.9.6+2
   http_parser: ^3.1.4
   path: ^1.7.0
-
-dev_dependencies:
   pedantic: ^1.9.0

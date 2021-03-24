@@ -1,8 +1,9 @@
 // Created by 超悟空 on 2018/9/20.
 
 import 'package:dio/dio.dart';
+
+import '_work_request.dart' as com;
 import 'work_model.dart' show WorkRequest;
-import '_communication.dart' as com;
 
 /// 表单提交格式
 ///

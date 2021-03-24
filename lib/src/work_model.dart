@@ -129,7 +129,8 @@ class Response {
   }
 
   /// 将[body]转换为显示字符串
-  dynamic get _bodyToString => data is List<int> ? 'bytes ${data.length}' : data;
+  dynamic get _bodyToString =>
+      data is List<int> ? 'bytes ${data.length}' : data;
 
   @override
   String toString() => '''response 
@@ -157,7 +158,8 @@ class CancelToken {
 
 /// 描述要上传的文件信息
 class UploadFileInfo {
-  UploadFileInfo._raw({this.stream, this.length, this.filePath, this.fileName, this.mimeType});
+  UploadFileInfo._raw(
+      {this.stream, this.length, this.filePath, this.fileName, this.mimeType});
 
   /// 使用[filePath]创建上传文件
   ///
@@ -167,11 +169,16 @@ class UploadFileInfo {
 
     mimeType ??= lookupMimeType(fileName);
 
-    return UploadFileInfo._raw(stream: null, filePath: filePath, fileName: fileName, mimeType: mimeType);
+    return UploadFileInfo._raw(
+        stream: null,
+        filePath: filePath,
+        fileName: fileName,
+        mimeType: mimeType);
   }
 
   /// 使用文件的字节流[bytes]创建上传文件
-  factory UploadFileInfo.bytes(List<int> bytes, {String fileName, String mimeType}) {
+  factory UploadFileInfo.bytes(List<int> bytes,
+      {String fileName, String mimeType}) {
     return UploadFileInfo._raw(
         stream: Stream.fromIterable([bytes]),
         length: bytes.length,
@@ -181,8 +188,14 @@ class UploadFileInfo {
   }
 
   /// 使用文件的字节流[stream]创建上传文件
-  factory UploadFileInfo.stream(Stream<List<int>> stream, int length, {String fileName, String mimeType}) {
-    return UploadFileInfo._raw(stream: stream, length: length, filePath: null, fileName: fileName, mimeType: mimeType);
+  factory UploadFileInfo.stream(Stream<List<int>> stream, int length,
+      {String fileName, String mimeType}) {
+    return UploadFileInfo._raw(
+        stream: stream,
+        length: length,
+        filePath: null,
+        fileName: fileName,
+        mimeType: mimeType);
   }
 
   /// 文件字节流
@@ -206,7 +219,8 @@ class UploadFileInfo {
   final String mimeType;
 
   @override
-  String toString() => "UploadFileInfo:'$filePath' fileName:$fileName mimeType:$mimeType";
+  String toString() =>
+      "UploadFileInfo:'$filePath' fileName:$fileName mimeType:$mimeType";
 }
 
 /// 用于[json_annotation]库序列化标记需要上传的文件类型参数转换
