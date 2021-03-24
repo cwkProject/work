@@ -1,3 +1,10 @@
+## [0.6.1] - 2021/3/24
+
+* 移除原`Communication`类，变更为方法模板，现在允许在`work_config.dart`中覆盖全局请求实现，即`workRequest`。
+* 修改`Work`流程模型，允许同一个实例发起多次并发请求。
+* 修改`Work`取消模型，现在调用`Work.start`后将返回`WorkFuture`类，可用于取消本次请求。
+* 支持复数的自定义全局`dio`网络客户端实例，通过`Work`复写`onClientKey`来指定
+
 ## [0.6.0] - 2021/2/26
 
 * 修复`CancelToken`导致的`Stream`未关闭问题
