@@ -5,15 +5,14 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart' as dio;
 
-import '_print.dart';
-import 'communication.dart' as com;
-import 'work_config.dart' as work;
-
 import '_convert.dart'
 // ignore: uri_does_not_exist
     if (dart.library.html) '_convert_web.dart'
 // ignore: uri_does_not_exist
     if (dart.library.io) '_convert_native.dart';
+import '_print.dart';
+import 'work_config.dart' as work;
+import 'work_model.dart' as com;
 
 /// 发起请求
 ///
@@ -99,7 +98,7 @@ Future<com.Response> request(String tag, com.Options options) async {
       success: success,
       statusCode: dioResponse.statusCode ?? 0,
       headers: dioResponse.headers.map,
-      data: dioResponse.request.responseType == dio.ResponseType.stream
+      data: dioResponse.requestOptions.responseType == dio.ResponseType.stream
           ? dioResponse.data.stream
           : dioResponse.data,
       errorType: errorType,

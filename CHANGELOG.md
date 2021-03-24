@@ -1,3 +1,9 @@
+## [2.0.0-beta2] - 2021/3/24
+
+* 移除原`Communication`类，变更为方法模板，现在允许在`work_config.dart`中覆盖全局请求实现，即`workRequest`。
+* 修改`Work`流程模型，允许同一个实例发起多次并发请求。
+* 修改`Work`取消模型，现在调用`Work.start`后将返回`WorkFuture`类，可用于取消本次请求。
+
 ## [2.0.0-beta] - 2021/3/4
 
 * 支持空安全

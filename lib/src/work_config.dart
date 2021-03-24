@@ -2,6 +2,9 @@
 
 import 'package:dio/dio.dart';
 
+import '_work_request.dart' as com;
+import 'work_model.dart' show WorkRequest;
+
 /// 表单提交格式
 ///
 /// 如果默认的post使用'multipart/form-data'方式提交，
@@ -51,6 +54,7 @@ void mergeBaseOptions({
   RequestEncoder? requestEncoder,
   ResponseDecoder? responseDecoder,
   ListFormat? listFormat,
+  bool? setRequestContentTypeWhenNoPayload,
 }) {
   dio.options = dio.options.copyWith(
     method: method,
@@ -70,5 +74,9 @@ void mergeBaseOptions({
     requestEncoder: requestEncoder,
     responseDecoder: responseDecoder,
     listFormat: listFormat,
+    setRequestContentTypeWhenNoPayload: setRequestContentTypeWhenNoPayload,
   );
 }
+
+/// 全局实际执行网络请求的方法
+WorkRequest workRequest = com.workRequest;

@@ -3,7 +3,7 @@
 import 'dart:async';
 
 import 'package:meta/meta.dart';
-import 'communication.dart';
+import 'work_model.dart';
 import 'work_core.dart';
 
 /// 简化的[WorkData]类实现

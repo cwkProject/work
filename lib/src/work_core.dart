@@ -5,7 +5,9 @@ import 'dart:async';
 import 'package:meta/meta.dart';
 
 import '_print.dart';
-import 'communication.dart';
+import 'work_model.dart';
+import 'work_config.dart' show workRequest;
+import 'package:pedantic/pedantic.dart';
 
 /// [Work]返回的数据包装类
 ///
@@ -21,9 +23,6 @@ class WorkData<T> {
 
   /// 任务结果数据
   T? _result;
-
-  /// 任务取消标志
-  bool _cancel = false;
 
   /// 用于网络请求使用的参数
   Options? _options;
@@ -45,9 +44,6 @@ class WorkData<T> {
   /// 获取处理完成的最终结果数据(用户接口协议中定义的有效数据转化成的本地类)
   T? get result => _result;
 
-  /// 任务是否被取消
-  bool get cancel => _cancel;
-
   /// 用于网络请求使用的参数
   Options? get options => _options;
 
@@ -60,8 +56,77 @@ class WorkData<T> {
   Work<T, WorkData<T>> get work => _work;
 }
 
-/// 网络请求工具
-const Communication _communication = Communication();
+/// 任务执行专用[Future]，提供了取消功能
+class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
+  WorkFuture._(this._tag);
+
+  /// 任务标识
+  final String _tag;
+
+  /// 真正的完成器
+  final _completer = Completer<T>();
+
+  /// 是否被取消
+  bool _isCanceled = false;
+
+  /// 执行完成
+  void _complete(T data) {
+    if (_isCanceled) {
+      return;
+    }
+    _completer.complete(data);
+  }
+
+  /// 取消正在进行的任务
+  void cancel() {
+    log(_tag, 'cancel');
+    if (_isCanceled) {
+      log(_tag, 'work has been canceled');
+      return;
+    }
+    if (_completer.isCompleted) {
+      log(_tag, 'work finished');
+      return;
+    }
+    _isCanceled = true;
+    _completer.completeError(WorkCanceled._(_tag));
+  }
+
+  @override
+  Stream<T> asStream() => _completer.future.asStream();
+
+  @override
+  Future<T> catchError(Function onError, {bool Function(Object error)? test}) =>
+      _completer.future.catchError(onError, test: test);
+
+  @override
+  Future<R> then<R>(FutureOr<R> Function(T value) onValue,
+          {Function? onError}) =>
+      _completer.future.then<R>(onValue, onError: onError);
+
+  @override
+  Future<T> timeout(Duration timeLimit, {FutureOr<T> Function()? onTimeout}) =>
+      _completer.future.timeout(timeLimit, onTimeout: onTimeout);
+
+  @override
+  Future<T> whenComplete(FutureOr<void> Function() action) =>
+      _completer.future.whenComplete(action);
+
+  @override
+  String toString() =>
+      '$_tag(${_isCanceled ? "canceled" : _completer.isCompleted ? "complete" : "active"})';
+}
+
+/// 任务取消异常
+class WorkCanceled implements Exception {
+  WorkCanceled._(this._tag);
+
+  /// 任务标识
+  final String _tag;
+
+  @override
+  String toString() => 'This ticker was canceled:$_tag';
+}
 
 /// 任务流程的基本模型
 ///
@@ -78,36 +143,42 @@ abstract class Work<D, T extends WorkData<D>> {
     return _logTag = '$runtimeType@${hashCode.toRadixString(16)}';
   }
 
-  /// 任务取消状态标签
-  bool _cancelMark = false;
-
-  /// 取消请求工具
-  CancelToken? _cancelToken;
-
-  /// 正在执行的任务完成器
-  Completer<T>? _workCompleter;
-
   /// 启动任务
   ///
-  /// 返回包含执行结果[T]的[Future]。
+  /// 返回包含执行结果[T]的[WorkFuture]。
   /// * [retry]为请求失败重试次数，0表示不重试，实际请求1次，1表示重试1次，实际最多请求两次，以此类推
   /// * [onSendProgress]为数据发送进度监听器，[onReceiveProgress]为数据接收进度监听器，
   /// 在[HttpMethod.download]请求中为下载进度，在其他类型请求中为上传/发送进度。
-  /// * 同一个[Work]实例多次启动任务无效，总会返回同一个[Future]如果。
-  Future<T> start({
+  /// * 多次调用会启动多次请求
+  WorkFuture<D, T> start({
     int retry = 0,
+    OnProgress? onSendProgress,
+    OnProgress? onReceiveProgress,
+  }) {
+    final future = WorkFuture<D, T>._(_tag);
+
+    _onDo(
+      future: future,
+      retry: retry,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    ).then(future._complete);
+
+    return future;
+  }
+
+  /// 实际执行任务
+  ///
+  /// [future]任务完成器
+  Future<T> _onDo({
+    required WorkFuture<D, T> future,
+    required int retry,
     OnProgress? onSendProgress,
     OnProgress? onReceiveProgress,
   }) async {
     assert(retry >= 0);
 
-    if (_workCompleter != null) {
-      return _workCompleter!.future;
-    }
-
     log(_tag, 'work start');
-
-    _workCompleter = Completer<T>();
 
     // 创建数据模型
     final data = onCreateWorkData();
@@ -117,28 +188,31 @@ abstract class Work<D, T extends WorkData<D>> {
     // 是否继续执行
     var next = true;
 
-    if (!_cancelMark) {
+    if (!future._isCanceled) {
       // 执行前导任务
       next = await _onStartWork(data);
     }
 
-    if (!_cancelMark && next) {
+    if (!future._isCanceled && next) {
       // 构建http请求选项
       data._options = await _onCreateOptions(
         retry,
         onSendProgress,
         onReceiveProgress,
       );
-      // 执行核心任务
-      await _onDoWork(data);
     }
 
-    if (!_cancelMark) {
+    if (!future._isCanceled && next) {
+      // 执行核心任务
+      await _onDoWork(future, data);
+    }
+
+    if (!future._isCanceled) {
       // 执行后继任务
       await _onStopWork(data);
     }
 
-    if (!_cancelMark) {
+    if (!future._isCanceled) {
       // 最后执行
       log(_tag, 'onFinish invoke');
       try {
@@ -151,7 +225,7 @@ abstract class Work<D, T extends WorkData<D>> {
       }
     }
 
-    if (_cancelMark) {
+    if (future._isCanceled) {
       // 任务被取消
       log(_tag, 'onCanceled invoked');
       try {
@@ -166,11 +240,7 @@ abstract class Work<D, T extends WorkData<D>> {
 
     log(_tag, 'work end');
 
-    data._cancel = _cancelMark;
-
-    _workCompleter!.complete(data);
-
-    return _workCompleter!.future;
+    return data;
   }
 
   /// 创建数据模型对象的实例
@@ -262,172 +332,38 @@ abstract class Work<D, T extends WorkData<D>> {
       await configOptions;
     }
 
-    _cancelToken = options.cancelToken;
-
     return options;
   }
 
   /// 核心任务执行
   ///
   /// 此处为真正启动http请求的方法
-  Future<void> _onDoWork(T data) async {
-    if (_cancelMark) {
-      return;
-    }
-
+  Future<void> _onDoWork(WorkFuture<D, T> future, T data) async {
     final willRequest = onWillRequest(data);
     if (willRequest is Future<void>) {
       await willRequest;
     }
 
-    if (_cancelMark) {
+    if (future._isCanceled) {
       return;
     }
+
+    unawaited(future.catchError(
+      (_) => data.options?.cancelToken.cancel(),
+      test: (error) => error is WorkCanceled,
+    ));
 
     // 创建网络请求工具
-    Communication communication;
-    final interceptCreateCommunication = onInterceptCreateCommunication(data);
-    if (interceptCreateCommunication is Future<Communication?>) {
-      communication = await interceptCreateCommunication ?? _communication;
-    } else {
-      communication = interceptCreateCommunication ?? _communication;
-    }
+    final request = onWorkRequest();
 
-    if (_cancelMark) {
-      return;
-    }
+    data._response = await request(_tag, data.options!);
 
-    data._response = await communication.request(_tag, data.options!);
-
-    if (_cancelMark) {
+    if (future._isCanceled) {
       return;
     }
 
     await _onParseResponse(data);
   }
-
-  /// 任务完成后置方法
-  Future<void> _onStopWork(T data) async {
-    log(_tag, 'onStopWork invoked');
-
-    if (!_cancelMark) {
-      try {
-        // 不同结果的后继执行
-        if (data.success) {
-          log(_tag, 'onSuccess invoke');
-          final success = onSuccess(data);
-          if (success is Future<void>) {
-            await success;
-          }
-        } else {
-          log(_tag, 'onFailed invoke');
-          final failed = onFailed(data);
-          if (failed is Future<void>) {
-            await failed;
-          }
-        }
-      } catch (e) {
-        log(_tag, 'onStopWork failed', e);
-      }
-    }
-  }
-
-  /// 最后执行的一个方法
-  ///
-  /// 即设置请求结果和返回数据之后，并且在回调任务发送后才执行此函数
-  @protected
-  FutureOr<void> onFinish(T data) {}
-
-  /// 任务被取消时调用
-  @protected
-  FutureOr<void> onCanceled(T data) {}
-
-  /// 参数合法性检测
-  ///
-  /// * 用于检测任务启动所需的参数是否合法，需要子类重写检测规则。
-  /// * 检测成功任务才会被正常执行，如果检测失败则[onParamsError]会被调用，
-  /// 且后续网络请求任务不再执行，任务任然可以正常返回并执行生命周期[onFailed]，[onFinish]。
-  /// * 参数合法返回true，非法返回false。
-  @protected
-  FutureOr<bool> onCheckParams() => true;
-
-  /// 参数检测不合法时调用
-  ///
-  /// * [onCheckParams]返回false时被调用，且后续网络请求任务不再执行，
-  /// 但是任务任然可以正常返回并执行生命周期[onFailed]，[onFinish]。
-  /// * 返回错误消息内容，将会设置给[WorkData.message]
-  @protected
-  FutureOr<String?> onParamsError() => null;
-
-  /// 填充请求所需的前置参数
-  ///
-  /// * 适合填充项目中所有接口必须传递的固定参数（通过项目中实现的定制[Work]基类完成）
-  /// * 返回预填充的参数对，没有返回null或空对象
-  /// * 返回的参数最终会和[onFillParams]中返回的参数合并，且可能会被[onFillParams]中的同名参数覆盖
-  @protected
-  FutureOr<Map<String, dynamic>?> onPreFillParams() => null;
-
-  /// 填充请求所需的参数
-  ///
-  /// * 返回填充的参数对，没有返回null或空对象
-  /// * 返回的参数最终会和[onPreFillParams]中返回的参数合并，且可以覆盖[onPreFillParams]中的同名参数
-  @protected
-  FutureOr<Map<String, dynamic>?> onFillParams();
-
-  /// 填充请求所需的后置参数
-  ///
-  /// * 适合对参数进行签名（通过项目中实现的定制[Work]基类完成）
-  /// * [data]为请求参数集（http请求要发送的参数），由[onPreFillParams]和[onFillParams]生成
-  /// * 如果需要使用其他数据类型作为请求参数，请返回新的数据集合对象，支持[Map]，[List]，[String]([ResponseType.plain])
-  /// * 可以直接在data中增加新参数，也可以返回新集合
-  /// * 可以直接返回[data]，不返回参数或返回null则继续使用[data]作为请求参数
-  @protected
-  FutureOr<dynamic> onPostFillParams(Map<String, dynamic> data) => null;
-
-  /// 创建并填充请求头
-  @protected
-  FutureOr<Map<String, dynamic>?> onHeaders() => null;
-
-  /// 拦截创建网络请求工具
-  ///
-  /// 用于创建完全自定义实现的网络请求工具。
-  @protected
-  FutureOr<Communication?> onInterceptCreateCommunication(T data) => null;
-
-  /// 即将执行网络请求前的回调
-  ///
-  /// 此处可以用于做数据统计，特殊变量创建等，如果调用[cancel]则会拦截接下来的网络请求
-  @protected
-  FutureOr<void> onWillRequest(T data) {}
-
-  /// 自定义配置http请求选择项
-  ///
-  /// * [options]为请求将要使用的配置选项，修改[options]的属性以定制http行为。
-  /// * [options]包含[httpMethod]返回的请求方法，
-  /// [onFillParams]填充的参数，
-  /// [onUrl]返回的请求地址，
-  /// [start]中传传递的[retry]和[onProgress]，
-  /// [onHeaders]中创建的请求头，
-  /// 以上属性都可以在这里被覆盖可以被覆盖。
-  @protected
-  FutureOr<void> onConfigOptions(Options options) {}
-
-  /// 网络请求方法
-  @protected
-  HttpMethod onHttpMethod() => HttpMethod.get;
-
-  /// 网络请求地址
-  ///
-  /// 可以是完整地址，也可以是相对地址（需要设置baseUrl，关联性请查看[work_config.dart]）
-  @protected
-  String onUrl();
-
-  /// 用于指定使用的网络全局网络访问器的key
-  ///
-  /// 返回null或key不存在则表示使用默认访问器
-  /// 关联性请查看[work_config.dart]
-  @protected
-  String? onClientKey() => null;
 
   /// 解析响应数据
   Future<void> _onParseResponse(T data) async {
@@ -558,6 +494,119 @@ abstract class Work<D, T extends WorkData<D>> {
     }
   }
 
+  /// 任务完成后置方法
+  Future<void> _onStopWork(T data) async {
+    log(_tag, 'onStopWork invoked');
+
+    try {
+      // 不同结果的后继执行
+      if (data.success) {
+        log(_tag, 'onSuccess invoke');
+        final success = onSuccess(data);
+        if (success is Future<void>) {
+          await success;
+        }
+      } else {
+        log(_tag, 'onFailed invoke');
+        final failed = onFailed(data);
+        if (failed is Future<void>) {
+          await failed;
+        }
+      }
+    } catch (e) {
+      log(_tag, 'onStopWork failed', e);
+    }
+  }
+
+  /// 参数合法性检测
+  ///
+  /// * 用于检测任务启动所需的参数是否合法，需要子类重写检测规则。
+  /// * 检测成功任务才会被正常执行，如果检测失败则[onParamsError]会被调用，
+  /// 且后续网络请求任务不再执行，任务任然可以正常返回并执行生命周期[onFailed]，[onFinish]。
+  /// * 参数合法返回true，非法返回false。
+  @protected
+  FutureOr<bool> onCheckParams() => true;
+
+  /// 参数检测不合法时调用
+  ///
+  /// * [onCheckParams]返回false时被调用，且后续网络请求任务不再执行，
+  /// 但是任务任然可以正常返回并执行生命周期[onFailed]，[onFinish]。
+  /// * 返回错误消息内容，将会设置给[WorkData.message]
+  @protected
+  FutureOr<String?> onParamsError() => null;
+
+  /// 返回请求实现方法
+  ///
+  /// 默认实现为[workRequest]
+  /// 如果要覆盖全局实现，请覆盖[workRequest]
+  /// 如果仅覆盖本任务请重写此方法
+  @protected
+  WorkRequest onWorkRequest() => workRequest;
+
+  /// 网络请求方法
+  @protected
+  HttpMethod onHttpMethod() => HttpMethod.get;
+
+  /// 网络请求地址
+  ///
+  /// 可以是完整地址，也可以是相对地址（需要设置baseUrl，关联性请查看[work_config.dart]）
+  @protected
+  String onUrl();
+
+  /// 用于指定使用的网络全局网络访问器的key
+  ///
+  /// 返回null或key不存在则表示使用默认访问器
+  /// 关联性请查看[work_config.dart]
+  @protected
+  String? onClientKey() => null;
+
+  /// 创建并填充请求头
+  @protected
+  FutureOr<Map<String, dynamic>?> onHeaders() => null;
+
+  /// 自定义配置http请求选择项
+  ///
+  /// * [options]为请求将要使用的配置选项，修改[options]的属性以定制http行为。
+  /// * [options]包含[httpMethod]返回的请求方法，
+  /// [onFillParams]填充的参数，
+  /// [onUrl]返回的请求地址，
+  /// [start]中传传递的[retry]和[onProgress]，
+  /// [onHeaders]中创建的请求头，
+  /// 以上属性都可以在这里被覆盖可以被覆盖。
+  @protected
+  FutureOr<void> onConfigOptions(Options options) {}
+
+  /// 填充请求所需的前置参数
+  ///
+  /// * 适合填充项目中所有接口必须传递的固定参数（通过项目中实现的定制[Work]基类完成）
+  /// * 返回预填充的参数对，没有返回null或空对象
+  /// * 返回的参数最终会和[onFillParams]中返回的参数合并，且可能会被[onFillParams]中的同名参数覆盖
+  @protected
+  FutureOr<Map<String, dynamic>?> onPreFillParams() => null;
+
+  /// 填充请求所需的参数
+  ///
+  /// * 返回填充的参数对，没有返回null或空对象
+  /// * 返回的参数最终会和[onPreFillParams]中返回的参数合并，且可以覆盖[onPreFillParams]中的同名参数
+  @protected
+  FutureOr<Map<String, dynamic>?> onFillParams();
+
+  /// 填充请求所需的后置参数
+  ///
+  /// * 适合对参数进行签名（通过项目中实现的定制[Work]基类完成）
+  /// * [data]为请求参数集（http请求要发送的参数），由[onPreFillParams]和[onFillParams]生成
+  /// * 如果需要使用其他数据类型作为请求参数，请返回新的数据集合对象，支持[Map]，[List]，[String]([ResponseType.plain])
+  /// * 可以直接在data中增加新参数，也可以返回新集合
+  /// * 可以直接返回[data]，不返回参数或返回null则继续使用[data]作为请求参数
+  @protected
+  FutureOr<dynamic> onPostFillParams(Map<String, dynamic> data) => null;
+
+  /// 即将执行网络请求前的回调
+  ///
+  /// 此处可以用于做数据统计，特殊变量创建等，如果调用[cancel]则会拦截接下来的网络请求
+  @protected
+  FutureOr<void> onWillRequest(T data) {}
+
   /// 服务器响应数据解析成功后调用
   ///
   /// 即在[_onParse]返回true时调用
@@ -645,24 +694,13 @@ abstract class Work<D, T extends WorkData<D>> {
   @protected
   FutureOr<void> onFailed(T data) {}
 
-  /// 取消正在进行的任务
+  /// 最后执行的一个方法
   ///
-  /// 如果本任务被多次启动排队执行，则会一次性取消所有排队任务和正在执行的任务
-  void cancel() {
-    log(_tag, 'cancel');
-    if (_cancelMark) {
-      log(_tag, 'work has been canceled');
-      return;
-    }
-    if (_workCompleter == null) {
-      log(_tag, 'work not started');
-      return;
-    }
-    if (_workCompleter!.isCompleted) {
-      log(_tag, 'work finished');
-      return;
-    }
-    _cancelMark = true;
-    _cancelToken?.cancel();
-  }
+  /// 即设置请求结果和返回数据之后，并且在回调任务发送后才执行此函数
+  @protected
+  FutureOr<void> onFinish(T data) {}
+
+  /// 任务被取消时调用
+  @protected
+  FutureOr<void> onCanceled(T data) {}
 }
