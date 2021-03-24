@@ -166,7 +166,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
     OnProgress onReceiveProgress,
   ]) {
     assert(retry != null && retry >= 0);
-    final future = WorkFuture<D, T>._(_tag);
+    final future = WorkFuture<D, T>._(tag);
 
     _onDo(
       future: future,
@@ -347,7 +347,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
     // 创建网络请求工具
     final request = onWorkRequest() ?? workRequest;
 
-    data._response = await request(_tag, data.options);
+    data._response = await request(tag, data.options);
 
     if (future._isCanceled) {
       return;
