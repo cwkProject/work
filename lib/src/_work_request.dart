@@ -1,6 +1,7 @@
 // Created by 超悟空 on 2021/3/23.
 
 import 'dart:convert';
+import 'dart:developer';
 
 import '_dio_request.dart' as http;
 import '_print.dart';
@@ -25,9 +26,12 @@ Future<Response> workRequest(String tag, Options options) async {
 
   do {
     if (i > 0) {
-      log(tag, 'retry ', i);
+      log(tag, 'retry $i');
     }
+    final startTime = Timeline.now;
     response = await http.request(tag, options);
+    log(tag, 'request use ${Timeline.now - startTime}μs');
+
     if (response.success) {
       break;
     }

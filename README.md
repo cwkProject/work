@@ -84,7 +84,7 @@ class LoginWork extends SimpleWork<User> {
 
 ```
 
-// 创建work实例并执行start发起请求，一个work实例仅能执行一次请求，多次调用start总是返回第一次执行的Future
+// 创建work实例并执行start发起请求，多次调用start会发起多次请求，
 // [onProgress]为进度监听器，在[HttpMethod.download]请求中为下载进度，在其他类型请求中为上传/发送进度。
 LoginWork(username: 'user1', password: '123456').start().then((data){
    // start方法返回Future<T> ，T为[SimpleWorkData]类
