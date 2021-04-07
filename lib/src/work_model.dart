@@ -15,6 +15,11 @@ typedef OnProgress = void Function(int current, int total);
 /// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回响应数据
 typedef WorkRequest = Future<Response> Function(String tag, Options options);
 
+/// 表单提交格式
+///
+/// 如果默认的post使用'multipart/form-data'方式提交，
+/// 则需要将[Dio.options]设为此值，
+/// 框架负责将传入的map数据自动装配成FormData格式
 const formData = 'multipart/form-data';
 
 /// 请求配置信息
@@ -30,7 +35,7 @@ class Options {
 
   /// 请求重试次数
   ///
-  /// 默认0表示不重试，实际执行1此请求，如果设置为1则至少执行一次请求，最多执行两次请求。
+  /// 默认0表示不重试，实际执行1次请求，如果设置为1则至少执行一次请求，最多执行两次请求，以此类推
   int retry = 0;
 
   /// 发送/上传进度监听器，在[HttpMethod.get]和[HttpMethod.download]中无效
@@ -62,7 +67,7 @@ class Options {
   /// 框架会自动进行表单装配
   String? contentType;
 
-  /// [responseType] 表示期望以那种格式(方式)接受响应数据
+  /// [responseType] 表示期望以哪种格式(方式)接受响应数据
   ///
   /// 默认值是[ResponseType.json]
   ResponseType? responseType;
@@ -74,15 +79,12 @@ class Options {
   ///
   /// 返回null或key不存在则表示使用默认访问器
   /// 关联性请查看[work_config.dart]
-  String? clientKey;
-
-  /// 忽略值为null的参数，即不会被发送
-  bool ignoreNull = true;
+  String? configKey;
 
   @override
   String toString() => '''request 
 $method
-url: ${dio.options.baseUrl}$url
+url: ${(workConfigs[configKey] ?? workConfig).dio.options.baseUrl}$url
 headers: $headers
 params: $params''';
 }
@@ -95,7 +97,6 @@ class Response {
     this.headers,
     this.statusCode = 0,
     this.errorType,
-    this.receiveByteCount = 0,
   });
 
   /// 响应数据
@@ -116,9 +117,6 @@ class Response {
   ///
   /// null表示无异常
   HttpErrorType? errorType;
-
-  /// 总接收子节数
-  int receiveByteCount;
 
   /// 将头信息转换成文本输出
   String get _headersToString {
@@ -262,6 +260,9 @@ enum HttpMethod {
 
   /// head请求
   head,
+
+  /// patch请求
+  patch,
 
   /// 上传
   ///

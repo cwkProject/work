@@ -1,3 +1,16 @@
+## [2.0.1] - 2021/4/7
+
+* BREAKING: `work_config.dart`重构，将`dio`与`workRequest`封装到`WorkConfig`中
+* BREAKING: 移除`dio`与`workRequest`，请使用`workConfig`
+* BREAKING: 移除`dioMap`，请使用`workConfigs`
+* BREAKING: 移除`mergeBaseOptions`方法，请直接对`Dio`对象修改赋值
+* BREAKING: 移除`formDataContentType`，请使用`formData`
+* BREAKING: `Work.onClientKey`重命名为`Work.onConfigKey`
+* BREAKING: `Work.onWorkRequest`增加请求参数`Options`
+* BREAKING: 移除`Response.receiveByteCount`字段支持
+* 增加`HttpMethod.patch`请求类型
+* 修改`HttpMethod.download`请求类型时参数传递由查询参数赋值
+
 ## [2.0.0] - 2021/3/29
 
 * 升级到稳定版

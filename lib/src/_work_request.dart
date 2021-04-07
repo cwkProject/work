@@ -13,7 +13,11 @@ import 'work_model.dart';
 /// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回响应数据
 Future<Response> workRequest(String tag, Options options) async {
   if (!options.url.startsWith(RegExp(r'https?://')) &&
-      (dioMap[options.clientKey] ?? dio).options.baseUrl.isEmpty) {
+      (workConfigs[options.configKey] ?? workConfig)
+          .dio
+          .options
+          .baseUrl
+          .isEmpty) {
     // 地址不合法
     log(tag, 'url error');
     return Response(errorType: HttpErrorType.other);

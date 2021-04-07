@@ -1,7 +1,6 @@
 // Created by 超悟空 on 2018/9/25.
 
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:dio/dio.dart' as dio;
 
@@ -26,41 +25,29 @@ Future<work.Response> request(String tag, work.Options options) async {
 
   work.HttpErrorType? errorType;
 
-  // 总接收字节数
-  var receiveByteCount = 0;
-
-  // 结果解析器
-  final decoder = (responseBytes, options, responseBody) {
-    receiveByteCount = responseBytes.length;
-    return utf8.decode(responseBytes, allowMalformed: true);
-  };
-
-  dioOptions.responseDecoder = decoder;
+  final client =
+      (config.workConfigs[options.configKey] ?? config.workConfig).dio;
 
   final isFormData = options.method == work.HttpMethod.upload ||
-      (options.contentType ?? config.dio.options.contentType) == work.formData;
-
-  final client = config.dioMap[options.clientKey] ?? config.dio;
+      (options.contentType ?? client.options.contentType) == work.formData;
 
   try {
     switch (options.method) {
       case work.HttpMethod.download:
         log(tag, 'download path:${options.downloadPath}');
 
-        // 接收进度代理
-        final onReceiveProgress = (int receive, int total) {
-          receiveByteCount = receive;
-          options.onReceiveProgress?.call(receive, total);
-        };
-
-        dioResponse = await client.download(options.url, options.downloadPath,
-            data: options.params,
-            cancelToken: options.cancelToken.data,
-            options: dioOptions,
-            onReceiveProgress: onReceiveProgress);
+        dioResponse = await client.download(
+          options.url,
+          options.downloadPath,
+          queryParameters: options.params,
+          cancelToken: options.cancelToken.data,
+          options: dioOptions,
+          onReceiveProgress: options.onReceiveProgress,
+        );
         break;
       case work.HttpMethod.get:
-        dioResponse = await client.get(
+      case work.HttpMethod.head:
+        dioResponse = await client.request(
           options.url,
           queryParameters: options.params,
           cancelToken: options.cancelToken.data,
@@ -102,7 +89,6 @@ Future<work.Response> request(String tag, work.Options options) async {
           ? dioResponse.data.stream
           : dioResponse.data,
       errorType: errorType,
-      receiveByteCount: receiveByteCount,
     );
   } else {
     return work.Response(errorType: errorType);
@@ -127,6 +113,9 @@ dio.Options _onConfigOptions(String tag, work.Options options) {
       break;
     case work.HttpMethod.head:
       dioOptions.method = 'HEAD';
+      break;
+    case work.HttpMethod.patch:
+      dioOptions.method = 'PATCH';
       break;
     case work.HttpMethod.delete:
       dioOptions.method = 'DELETE';

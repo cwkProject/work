@@ -6,7 +6,7 @@ import 'package:meta/meta.dart';
 
 import '_print.dart';
 import 'work_model.dart';
-import 'work_config.dart' show workRequest;
+import 'work_config.dart' show workConfigs, workConfig;
 import 'package:pedantic/pedantic.dart';
 
 /// [Work]返回的数据包装类
@@ -150,6 +150,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
   /// * [onSendProgress]为数据发送进度监听器，[onReceiveProgress]为数据接收进度监听器，
   /// 在[HttpMethod.download]请求中为下载进度，在其他类型请求中为上传/发送进度。
   /// * 多次调用会启动多次请求
+  @override
   WorkFuture<D, T> start({
     int retry = 0,
     OnProgress? onSendProgress,
@@ -305,7 +306,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
       ..onSendProgress = onSendProgress
       ..onReceiveProgress = onReceiveProgress
       ..method = onHttpMethod()
-      ..clientKey = onClientKey()
+      ..configKey = onConfigKey()
       ..url = onUrl();
 
     final headers = onHeaders();
@@ -350,7 +351,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
     ));
 
     // 创建网络请求工具
-    final request = onWorkRequest();
+    final request = onWorkRequest(data.options!);
 
     data._response = await request(_tag, data.options!);
 
@@ -559,7 +560,8 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 如果要覆盖全局实现，请覆盖[workRequest]
   /// 如果仅覆盖本任务请重写此方法
   @protected
-  WorkRequest onWorkRequest() => workRequest;
+  WorkRequest onWorkRequest(Options options) =>
+      (workConfigs[options.configKey] ?? workConfig).workRequest;
 
   /// 网络请求方法
   @protected
@@ -571,12 +573,12 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   @protected
   String onUrl();
 
-  /// 用于指定使用的网络全局网络访问器的key
+  /// 用于指定全局网络客户端配置的key
   ///
-  /// 返回null或key不存在则表示使用默认访问器
-  /// 关联性请查看[work_config.dart]
+  /// 返回null或key不存在则表示使用默认客户端配置
+  /// 关联性请查看[workConfigs]
   @protected
-  String? onClientKey() => null;
+  String? onConfigKey() => null;
 
   /// 创建并填充请求头
   @protected
