@@ -1,3 +1,11 @@
+## [2.0.2] - 2021/4/12
+
+* 简化流程
+* BREAKING: 移除`onCheckResponse`生命周期
+* BREAKING: 变更部分生命周期签名，返回移除`FeatureOr`支持
+* BREAKING: `WorkData`移除`work`属性
+* BREAKING: 从库中移除`SimpleWork`示例，移动到`example`中
+
 ## [2.0.1] - 2021/4/7
 
 * BREAKING: `work_config.dart`重构，将`dio`与`workRequest`封装到`WorkConfig`中

@@ -36,7 +36,7 @@ Future<Response> workRequest(String tag, Options options) async {
     response = await http.request(tag, options);
     log(tag, 'request use ${Timeline.now - startTime}μs');
 
-    if (response.success) {
+    if (response.success || response.errorType == HttpErrorType.cancel) {
       break;
     }
     i++;

@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:work/work.dart';
 import 'package:json_annotation/json_annotation.dart';
 
+import 'simple_work.dart';
+
 part 'main.g.dart';
 
 void main() async {
@@ -57,7 +59,8 @@ class TestWork extends SimpleWork<String> {
   String onParseFailed(data) => '请求失败，服务器异常';
 
   @override
-  String onRequestFailedMessage(data) => data.response!.data['message'] ?? '操作失败';
+  String onRequestFailedMessage(data) =>
+      data.response!.data['message'] ?? '操作失败';
 
   @override
   String onRequestSuccessMessage(data) => data.response!.data['message'] ?? '';
@@ -65,7 +68,7 @@ class TestWork extends SimpleWork<String> {
 
 @JsonSerializable()
 class DownloadWork extends SimpleDownloadWork {
-  DownloadWork({required this.path,required this.key,required this.resNo});
+  DownloadWork({required this.path, required this.key, required this.resNo});
 
   /// 存放路径
   @JsonKey(ignore: true)

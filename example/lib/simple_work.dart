@@ -3,8 +3,7 @@
 import 'dart:async';
 
 import 'package:meta/meta.dart';
-import 'work_model.dart';
-import 'work_core.dart';
+import 'package:work/work.dart';
 
 /// 简化的[WorkData]类实现
 ///
@@ -58,12 +57,7 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   SimpleWorkData<D> onCreateWorkData() => SimpleWorkData<D>();
 
   @override
-  FutureOr<bool> onCheckResponse(SimpleWorkData<D> data) =>
-      data.response?.data != null &&
-      data.response?.data is Map<String, dynamic>;
-
-  @override
-  FutureOr<D?> onResponseSuccess(SimpleWorkData<D> data) {
+  FutureOr<D?> onRequestSuccess(SimpleWorkData<D> data) {
     if (data.response?.data?[result] == null) {
       return onDefaultResult(data);
     } else {
@@ -72,8 +66,7 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   }
 
   @override
-  FutureOr<bool> onResponseResult(SimpleWorkData<D> data) =>
-      data.response!.data['state'];
+  bool onRequestResult(SimpleWorkData<D> data) => data.response!.data['state'];
 
   @mustCallSuper
   @override
@@ -86,11 +79,11 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   }
 
   @override
-  FutureOr<String?> onRequestSuccessMessage(SimpleWorkData<D> data) =>
+  String? onRequestSuccessMessage(SimpleWorkData<D> data) =>
       data.response!.data['message'];
 
   @override
-  FutureOr<String?> onRequestFailedMessage(SimpleWorkData<D> data) =>
+  String? onRequestFailedMessage(SimpleWorkData<D> data) =>
       data.response!.data['message'];
 
   /// 生成响应成功的结果数据
@@ -118,10 +111,10 @@ abstract class SimpleDownloadWork extends Work<void, SimpleWorkData<void>> {
   SimpleWorkData<void> onCreateWorkData() => SimpleWorkData<void>();
 
   @override
-  FutureOr<void> onResponseSuccess(SimpleWorkData<void> data) => null;
+  bool onRequestResult(SimpleWorkData<void> data) => true;
 
   @override
-  FutureOr<bool> onResponseResult(SimpleWorkData<void> data) => true;
+  FutureOr<void> onRequestSuccess(SimpleWorkData<void> data) => null;
 
   @override
   HttpMethod onHttpMethod() => HttpMethod.download;
@@ -129,16 +122,9 @@ abstract class SimpleDownloadWork extends Work<void, SimpleWorkData<void>> {
   @mustCallSuper
   @override
   FutureOr<void> onConfigOptions(Options options) {
-    final downloadPath = onDownloadPath();
-    if (downloadPath is Future<String>) {
-      return downloadPath.then((value) {
-        options.downloadPath = value;
-      });
-    } else {
-      options.downloadPath = downloadPath;
-    }
+    options.downloadPath = onDownloadPath();
   }
 
   /// 返回下载文件路径
-  FutureOr<String> onDownloadPath();
+  String onDownloadPath();
 }
