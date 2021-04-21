@@ -15,12 +15,12 @@ typedef OnProgress = void Function(int current, int total);
 /// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回响应数据
 typedef WorkRequest = Future<Response> Function(String tag, Options options);
 
-/// 表单提交格式
+/// 多分块提交格式
 ///
 /// 如果默认的post使用'multipart/form-data'方式提交，
 /// 则需要将[Dio.options]设为此值，
 /// 框架负责将传入的map数据自动装配成FormData格式
-const formData = 'multipart/form-data';
+const multipartFormData = 'multipart/form-data';
 
 /// 请求配置信息
 class Options {
@@ -63,7 +63,7 @@ class Options {
   /// 请求的Content-Type
   ///
   /// 默认值'application/x-www-form-urlencoded'
-  /// 如果需要formData的表单提交格式，请将该值设置为[formData]
+  /// 如果需要formData的表单提交格式，请将该值设置为[multipartFormData]
   /// 框架会自动进行表单装配
   String? contentType;
 

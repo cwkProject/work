@@ -29,7 +29,7 @@ Future<work.Response> request(String tag, work.Options options) async {
       (config.workConfigs[options.configKey] ?? config.workConfig).dio;
 
   final isFormData = options.method == work.HttpMethod.upload ||
-      (options.contentType ?? client.options.contentType) == work.formData;
+      (options.contentType ?? client.options.contentType) == work.multipartFormData;
 
   try {
     switch (options.method) {

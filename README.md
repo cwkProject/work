@@ -61,6 +61,7 @@ class LoginWork extends SimpleWork<User> {
   /// 返回发送的参数集合，可以和[json_serializable]库配合使用，也可以简单的直接拼装
   @override
   Map<String, dynamic> onFillParams() => _$LoginWorkToJson(this);
+
   // 简单的参数直接拼接
   // @override
   // Map<String, dynamic> onFillParams() => {
@@ -72,7 +73,7 @@ class LoginWork extends SimpleWork<User> {
 
   @override
   String onUrl() => "https://xxx/user/login";
-  // 地址可以是完整地址，支持baseUrl，需调用[mergeBaseOptions]设置
+  // 地址可以是完整地址，支持baseUrl，需在[workConfig]中设置dio属性
 
   @override
   HttpMethod onHttpMethod() => HttpMethod.post; // 使用post请求
@@ -85,9 +86,8 @@ class LoginWork extends SimpleWork<User> {
 ```
 
 // 创建work实例并执行start发起请求，多次调用start会发起多次请求，
-// [onProgress]为进度监听器，在[HttpMethod.download]请求中为下载进度，在其他类型请求中为上传/发送进度。
 LoginWork(username: 'user1', password: '123456').start().then((data){
-   // start方法返回Future<T> ，T为[SimpleWorkData]类
+   // start方法返回WorkFuture<T> ，T为[SimpleWorkData]类，此WorkFuture可以取消本次work请求
 
    if (data.success){
       // 登录成功
@@ -101,7 +101,7 @@ LoginWork(username: 'user1', password: '123456').start().then((data){
 
 ## 支持请求类型
 
-* `HttpMethod`中的类型，`get`、`post`、`put`、`delete`、`head`、`upload`、`download`。
+* `HttpMethod`中的类型，`get`、`post`、`put`、`delete`、`head`、`patch`、`upload`、`download`。
 * 其中`upload` 基于`post` 的 `multipart/form-data`实现，参数中的文件需要用`File`或`UploadFileInfo`类型包装，支持文件列表
 * `download`默认使用`get`请求，且由于`download`特殊性，需要使用独立于其他`Work`的实现方式，参考`SimpleDownloadWork`。
 

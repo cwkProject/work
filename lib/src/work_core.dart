@@ -119,7 +119,7 @@ class WorkCanceled implements Exception {
   final String _tag;
 
   @override
-  String toString() => 'This ticker was canceled:$_tag';
+  String toString() => 'This work was canceled:$_tag';
 }
 
 /// 任务流程的基本模型
@@ -141,8 +141,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
   ///
   /// 返回包含执行结果[T]的[WorkFuture]。
   /// * [retry]为请求失败重试次数，0表示不重试，实际请求1次，1表示重试1次，实际最多请求两次，以此类推
-  /// * [onSendProgress]为数据发送进度监听器，[onReceiveProgress]为数据接收进度监听器，
-  /// 在[HttpMethod.download]请求中为下载进度，在其他类型请求中为上传/发送进度。
+  /// * [onSendProgress]为数据上传/发送进度监听器，[onReceiveProgress]为数据接收/下载进度监听器，
   /// * 多次调用会启动多次请求
   @override
   WorkFuture<D, T> start({
