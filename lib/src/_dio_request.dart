@@ -1,65 +1,53 @@
 // Created by 超悟空 on 2018/9/25.
 
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:dio/dio.dart' as dio;
-
-import '_print.dart';
-import 'work_model.dart' as com;
-import 'work_config.dart' as work;
 
 import '_convert.dart'
 // ignore: uri_does_not_exist
     if (dart.library.html) '_convert_web.dart'
 // ignore: uri_does_not_exist
     if (dart.library.io) '_convert_native.dart';
+import '_print.dart';
+import 'work_config.dart' as config;
+import 'work_model.dart' as work;
 
 /// 发起请求
 ///
 /// dio实现
-Future<com.Response> request(String tag, com.Options options) async {
+Future<work.Response> request(String tag, work.Options options) async {
   final dioOptions = _onConfigOptions(tag, options);
 
-  dio.Response dioResponse;
+  dio.Response? dioResponse;
 
   var success = false;
 
-  com.HttpErrorType errorType;
+  work.HttpErrorType? errorType;
 
-  // 总接收字节数
-  var receiveByteCount = 0;
+  final client =
+      (config.workConfigs[options.configKey] ?? config.workConfig).dio;
 
-  // 结果解析器
-  final decoder = (responseBytes, options, responseBody) {
-    receiveByteCount = responseBytes.length;
-    return utf8.decode(responseBytes, allowMalformed: true);
-  };
-
-  dioOptions.responseDecoder = decoder;
-
-  final isFormData = options.method == com.HttpMethod.upload ||
-      (options.contentType ?? work.dio.options.contentType) == com.formData;
+  final isFormData = options.method == work.HttpMethod.upload ||
+      (options.contentType ?? client.options.contentType) == work.multipartFormData;
 
   try {
     switch (options.method) {
-      case com.HttpMethod.download:
+      case work.HttpMethod.download:
         log(tag, 'download path:${options.downloadPath}');
 
-        // 接收进度代理
-        final onReceiveProgress = (int receive, int total) {
-          receiveByteCount = receive;
-          options.onReceiveProgress?.call(receive, total);
-        };
-
-        dioResponse = await work.dio.download(options.url, options.downloadPath,
-            data: options.params,
-            cancelToken: options.cancelToken.data,
-            options: dioOptions,
-            onReceiveProgress: onReceiveProgress);
+        dioResponse = await client.download(
+          options.url,
+          options.downloadPath,
+          queryParameters: options.params,
+          cancelToken: options.cancelToken.data,
+          options: dioOptions,
+          onReceiveProgress: options.onReceiveProgress,
+        );
         break;
-      case com.HttpMethod.get:
-        dioResponse = await work.dio.get(
+      case work.HttpMethod.get:
+      case work.HttpMethod.head:
+        dioResponse = await client.request(
           options.url,
           queryParameters: options.params,
           cancelToken: options.cancelToken.data,
@@ -68,7 +56,7 @@ Future<com.Response> request(String tag, com.Options options) async {
         );
         break;
       default:
-        dioResponse = await work.dio.request(
+        dioResponse = await client.request(
           options.url,
           data:
               isFormData ? await convertToDio(options.params) : options.params,
@@ -86,109 +74,85 @@ Future<com.Response> request(String tag, com.Options options) async {
 
     dioResponse = e.response;
     success = false;
-    errorType = _onConvertErrorType(e.type);
+    errorType = onConvertErrorType(e.type);
   } catch (e) {
     log(tag, 'http other error', e);
-    errorType = com.HttpErrorType.other;
+    errorType = work.HttpErrorType.other;
   }
 
   if (dioResponse != null) {
-    return com.Response(
+    return work.Response(
       success: success,
-      statusCode: dioResponse.statusCode,
-      headers: dioResponse.headers?.map,
-      data: dioResponse.request?.responseType == dio.ResponseType.stream
+      statusCode: dioResponse.statusCode ?? 0,
+      headers: dioResponse.headers.map,
+      data: dioResponse.requestOptions.responseType == dio.ResponseType.stream
           ? dioResponse.data.stream
           : dioResponse.data,
       errorType: errorType,
-      receiveByteCount: receiveByteCount,
     );
   } else {
-    return com.Response(errorType: errorType);
-  }
-}
-
-/// 转换dio异常类型到work库异常类型
-com.HttpErrorType _onConvertErrorType(dio.DioErrorType type) {
-  switch (type) {
-    case dio.DioErrorType.CONNECT_TIMEOUT:
-      return com.HttpErrorType.connectTimeout;
-    case dio.DioErrorType.SEND_TIMEOUT:
-      return com.HttpErrorType.sendTimeout;
-    case dio.DioErrorType.RECEIVE_TIMEOUT:
-      return com.HttpErrorType.receiveTimeout;
-    case dio.DioErrorType.RESPONSE:
-      return com.HttpErrorType.response;
-    case dio.DioErrorType.CANCEL:
-      return com.HttpErrorType.cancel;
-    default:
-      return com.HttpErrorType.other;
+    return work.Response(errorType: errorType);
   }
 }
 
 /// 生成dio专用配置
-dio.Options _onConfigOptions(String tag, com.Options options) {
-  final dioOptions = dio.RequestOptions();
+dio.Options _onConfigOptions(String tag, work.Options options) {
+  final dioOptions = dio.Options();
 
   switch (options.method) {
-    case com.HttpMethod.get:
-    case com.HttpMethod.download:
+    case work.HttpMethod.get:
+    case work.HttpMethod.download:
       dioOptions.method = 'GET';
       break;
-    case com.HttpMethod.post:
-    case com.HttpMethod.upload:
+    case work.HttpMethod.post:
+    case work.HttpMethod.upload:
       dioOptions.method = 'POST';
       break;
-    case com.HttpMethod.put:
+    case work.HttpMethod.put:
       dioOptions.method = 'PUT';
       break;
-    case com.HttpMethod.head:
+    case work.HttpMethod.head:
       dioOptions.method = 'HEAD';
       break;
-    case com.HttpMethod.delete:
+    case work.HttpMethod.patch:
+      dioOptions.method = 'PATCH';
+      break;
+    case work.HttpMethod.delete:
       dioOptions.method = 'DELETE';
       break;
   }
 
   if (options.responseType != null) {
-    switch (options.responseType) {
-      case com.ResponseType.json:
+    switch (options.responseType!) {
+      case work.ResponseType.json:
         dioOptions.responseType = dio.ResponseType.json;
         break;
-      case com.ResponseType.stream:
+      case work.ResponseType.stream:
         dioOptions.responseType = dio.ResponseType.stream;
         break;
-      case com.ResponseType.plain:
+      case work.ResponseType.plain:
         dioOptions.responseType = dio.ResponseType.plain;
         break;
-      case com.ResponseType.bytes:
+      case work.ResponseType.bytes:
         dioOptions.responseType = dio.ResponseType.bytes;
         break;
     }
   }
 
-  if (options.headers != null) {
-    dioOptions.headers.addAll(options.headers);
-  }
+  dioOptions.headers = options.headers;
 
   dioOptions.contentType = options.contentType;
   dioOptions.receiveTimeout = options.readTimeout;
   dioOptions.sendTimeout = options.sendTimeout;
-  dioOptions.connectTimeout = options.connectTimeout;
 
-  if (options.cancelToken.data is! dio.CancelToken) {
-    final cancelToken = options.cancelToken;
+  options.cancelToken.data = dio.CancelToken();
 
-    cancelToken.data = dio.CancelToken();
-
-    cancelToken.whenCancel.then((_) {
-      if (cancelToken.data is dio.CancelToken) {
-        log(tag, 'http cancel');
-        cancelToken.data?.cancel();
-        cancelToken.data = null;
-      }
-    });
-  }
+  options.cancelToken.whenCancel.then((cancelToken) {
+    if (cancelToken is dio.CancelToken && !cancelToken.isCancelled) {
+      log(tag, 'http cancel');
+      cancelToken.cancel();
+    }
+  });
 
   return dioOptions;
 }

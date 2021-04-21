@@ -1,12 +1,48 @@
-## [0.6.2] - 2021/3/24
+## [2.0.2] - 2021/4/12
 
-* 修复日志tag错误
+* 简化流程
+* BREAKING: 移除`onCheckResponse`生命周期
+* BREAKING: 变更部分生命周期签名，返回移除`FeatureOr`支持
+* BREAKING: `WorkData`移除`work`属性
+* BREAKING: 从库中移除`SimpleWork`示例，移动到`example`中
 
-## [0.6.1] - 2021/3/24
+## [2.0.1] - 2021/4/7
+
+* BREAKING: `work_config.dart`重构，将`dio`与`workRequest`封装到`WorkConfig`中
+* BREAKING: 移除`dio`与`workRequest`，请使用`workConfig`
+* BREAKING: 移除`dioMap`，请使用`workConfigs`
+* BREAKING: 移除`mergeBaseOptions`方法，请直接对`Dio`对象修改赋值
+* BREAKING: 移除`formDataContentType`，请使用`formData`
+* BREAKING: `Work.onClientKey`重命名为`Work.onConfigKey`
+* BREAKING: `Work.onWorkRequest`增加请求参数`Options`
+* BREAKING: 移除`Response.receiveByteCount`字段支持
+* 增加`HttpMethod.patch`请求类型
+* 修改`HttpMethod.download`请求类型时参数传递由查询参数赋值
+
+## [2.0.0] - 2021/3/29
+
+* 升级到稳定版
+* 优化代码结构
+
+## [2.0.0-beta2] - 2021/3/24
 
 * 移除原`Communication`类，变更为方法模板，现在允许在`work_config.dart`中覆盖全局请求实现，即`workRequest`。
 * 修改`Work`流程模型，允许同一个实例发起多次并发请求。
 * 修改`Work`取消模型，现在调用`Work.start`后将返回`WorkFuture`类，可用于取消本次请求。
+
+## [2.0.0-beta] - 2021/3/4
+
+* 支持空安全
+* 等待[dio](https://pub.dev/packages/dio) 4.0就绪
+
+## [1.0.0] - 2021/2/26
+
+* BREAKING: 与1.0.0以下版本不兼容
+* BREAKING: 重构了`work`核心流程，`Work`实例改为由用户定义构造函数参数的方式来传入请求参数，`start`函数不再需要传递参数
+* BREAKING: 同一个`work`实例不再支持重复发送请求，多次请求请创建新的`Work`实例
+* BREAKING: 参数填充生命周期方法`onFillParams`和`onPreFillParams`签名变更，方便支持与[json_serializable](https://pub.dev/packages/json_serializable) 库协作填充参数
+* BREAKING: 为了兼容[json_serializable](https://pub.dev/packages/json_serializable) 库，原`httpMethod`方法更名为`onHttpMethod`
+* BREAKING: 全生命周期函数移除`params`传入参数，新版中`Work`的请求参数请在具体的接口实现类中声明类属性的方式实现
 * 支持复数的自定义全局`dio`网络客户端实例，通过`Work`复写`onClientKey`来指定
 
 ## [0.6.0] - 2021/2/26
