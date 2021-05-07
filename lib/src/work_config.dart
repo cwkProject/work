@@ -13,16 +13,7 @@ import 'work_model.dart' show WorkRequest;
 const formDataContentType = 'multipart/form-data';
 
 /// 是否开启debug模式，开启后会输出日志
-bool _debugWork = true;
-
-/// 是否开启debug模式，开启后会输出日志
-bool get debugWork => _debugWork;
-
-/// 是否开启debug模式，开启后会输出日志
-set debugWork(bool enable) {
-  assert(enable != null);
-  _debugWork = enable;
-}
+bool debugWork = true;
 
 /// 全局使用的[Dio]请求对象
 final _dio = Dio(
@@ -46,27 +37,31 @@ final dioMap = <String, Dio>{};
 
 /// 替换[dio.options]中的参数
 void mergeBaseOptions({
-  String method,
-  String baseUrl,
-  Map<String, dynamic> queryParameters,
-  int connectTimeout,
-  int receiveTimeout,
-  int sendTimeout,
-  Map<String, dynamic> extra,
-  Map<String, dynamic> headers,
-  ResponseType responseType,
-  String contentType,
-  ValidateStatus validateStatus,
-  bool receiveDataWhenStatusError,
-  bool followRedirects,
-  int maxRedirects,
-  RequestEncoder requestEncoder,
-  ResponseDecoder responseDecoder,
+  String? method,
+  String? baseUrl,
+  Map<String, dynamic>? queryParameters,
+  String? path,
+  int? connectTimeout,
+  int? receiveTimeout,
+  int? sendTimeout,
+  Map<String, dynamic>? extra,
+  Map<String, dynamic>? headers,
+  ResponseType? responseType,
+  String? contentType,
+  ValidateStatus? validateStatus,
+  bool? receiveDataWhenStatusError,
+  bool? followRedirects,
+  int? maxRedirects,
+  RequestEncoder? requestEncoder,
+  ResponseDecoder? responseDecoder,
+  ListFormat? listFormat,
+  bool? setRequestContentTypeWhenNoPayload,
 }) {
-  dio.options = dio.options.merge(
+  dio.options = dio.options.copyWith(
     method: method,
     baseUrl: baseUrl,
     queryParameters: queryParameters,
+    path: path,
     connectTimeout: connectTimeout,
     receiveTimeout: receiveTimeout,
     sendTimeout: sendTimeout,
@@ -80,6 +75,8 @@ void mergeBaseOptions({
     maxRedirects: maxRedirects,
     requestEncoder: requestEncoder,
     responseDecoder: responseDecoder,
+    listFormat: listFormat,
+    setRequestContentTypeWhenNoPayload: setRequestContentTypeWhenNoPayload,
   );
 }
 

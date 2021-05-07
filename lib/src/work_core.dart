@@ -19,47 +19,41 @@ class WorkData<T> {
   bool _success = false;
 
   /// 服务响应消息
-  String _message;
-
-  /// 任务传入参数列表
-  List _params;
+  String? _message;
 
   /// 任务结果数据
-  T _result;
+  T? _result;
 
   /// 用于网络请求使用的参数
-  Options _options;
+  Options? _options;
+
+  /// 任务传入参数列表
+  late List _params;
 
   /// http响应数据
   ///
   /// 在[Work._onParseResponse]生命周期阶段开始出现
-  Response _response;
-
-  /// 在一次[Work]执行生命周期中传递的自定义数据
-  ///
-  /// 通常在[Work]的某个生命周期方法中创建，以便在另一个生命周期中使用。
-  /// 此额外属性并不参与网络请求
-  dynamic extra;
+  Response? _response;
 
   /// 判断本次服务请求是否成功(用户接口协议约定的请求结果，并非http的请求结果，但是http请求失败时该值总是返回false)
   bool get success => _success;
 
   /// 获取本次请求返回的结果消息(用户接口协议中约定的消息或者根据规则生成的本地信息，并非http响应消息）
-  String get message => _message;
+  String? get message => _message;
+
+  /// 获取处理完成的最终结果数据(用户接口协议中定义的有效数据转化成的本地类)
+  T? get result => _result;
 
   /// 获取任务传入的参数列表
   List get params => _params;
 
-  /// 获取处理完成的最终结果数据(用户接口协议中定义的有效数据转化成的本地类)
-  T get result => _result;
-
   /// 用于网络请求使用的参数
-  Options get options => _options;
+  Options? get options => _options;
 
   /// http响应数据
   ///
   /// 在[Work._onParseResponse]生命周期阶段开始出现
-  Response get response => _response;
+  Response? get response => _response;
 }
 
 /// 任务执行专用[Future]，提供了取消功能
@@ -102,16 +96,16 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
   Stream<T> asStream() => _completer.future.asStream();
 
   @override
-  Future<T> catchError(Function onError, {bool Function(Object error) test}) =>
+  Future<T> catchError(Function onError, {bool Function(Object error)? test}) =>
       _completer.future.catchError(onError, test: test);
 
   @override
   Future<R> then<R>(FutureOr<R> Function(T value) onValue,
-          {Function onError}) =>
+          {Function? onError}) =>
       _completer.future.then<R>(onValue, onError: onError);
 
   @override
-  Future<T> timeout(Duration timeLimit, {FutureOr<T> Function() onTimeout}) =>
+  Future<T> timeout(Duration timeLimit, {FutureOr<T> Function()? onTimeout}) =>
       _completer.future.timeout(timeLimit, onTimeout: onTimeout);
 
   @override
@@ -131,7 +125,7 @@ class WorkCanceled implements Exception {
   final String _tag;
 
   @override
-  String toString() => 'This ticker was canceled:$_tag';
+  String toString() => 'This work was canceled:$_tag';
 }
 
 /// 任务流程的基本模型
@@ -139,15 +133,14 @@ class WorkCanceled implements Exception {
 /// [D]为关联的接口结果数据类型，[T]为接口响应包装类型[WorkData]
 abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
   /// 日志标签
-  String _tag;
+  String? _tag;
 
   /// 日志标签
   String get tag => _tag ?? _createTag();
 
   /// 创建日志标签
   String _createTag() {
-    _tag = '$runtimeType@${hashCode.toRadixString(16)}';
-    return _tag;
+    return _tag = '$runtimeType@${hashCode.toRadixString(16)}';
   }
 
   /// 启动任务
@@ -162,10 +155,10 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
   WorkFuture<D, T> start([
     List params = const [],
     int retry = 0,
-    OnProgress onSendProgress,
-    OnProgress onReceiveProgress,
+    OnProgress? onSendProgress,
+    OnProgress? onReceiveProgress,
   ]) {
-    assert(retry != null && retry >= 0);
+    assert(retry >= 0);
     final future = WorkFuture<D, T>._(tag);
 
     _onDo(
@@ -183,11 +176,11 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
   ///
   /// [future]任务完成器
   Future<T> _onDo({
-    WorkFuture<D, T> future,
-    List params,
-    int retry,
-    OnProgress onSendProgress,
-    OnProgress onReceiveProgress,
+    required WorkFuture<D, T> future,
+    required List params,
+    required int retry,
+    OnProgress? onSendProgress,
+    OnProgress? onReceiveProgress,
   }) async {
     // 创建数据模型
     final data = onCreateWorkData();
@@ -222,19 +215,6 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
       await _onStopWork(data);
     }
 
-    if (!future._isCanceled) {
-      // 最后执行
-      log(tag, 'onFinish invoke');
-      try {
-        final finish = onFinish(data);
-        if (finish is Future<void>) {
-          await finish;
-        }
-      } catch (e) {
-        log(tag, 'onFinish failed', e);
-      }
-    }
-
     if (future._isCanceled) {
       // 任务被取消
       log(tag, 'onCanceled invoked');
@@ -243,10 +223,19 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
         if (canceled is Future<void>) {
           await canceled;
         }
-      } catch (e) {
-        log(tag, 'onCanceled failed', e);
-      }
+        // ignore: empty_catches
+      } catch (e) {}
     }
+
+    // 最后执行
+    log(tag, 'onFinish');
+    try {
+      final finish = onFinish(data);
+      if (finish is Future<void>) {
+        await finish;
+      }
+      // ignore: empty_catches
+    } catch (e) {}
 
     return data;
   }
@@ -258,28 +247,22 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
     // 校验参数
     final check = onCheckParams(data.params);
     final checkResult = (check is Future<bool>) ? await check : check;
-    if (!checkResult) {
-      // 数据异常
-      log(tag, 'onStartWork params error');
-      // 执行异常回调
-      final message = onParamsError(data.params);
-      if (message is Future<String>) {
-        data._message = await message;
-      } else {
-        data._message = message;
-      }
-      return false;
+    if (checkResult) {
+      return true;
     }
 
-    return true;
+    // 数据异常
+    log(tag, 'onParamsError');
+    data._message = onParamsError(data.params);
+    return false;
   }
 
   /// 构建请求选项参数
   Future<Options> _onCreateOptions(
     List params,
     int retry,
-    OnProgress onSendProgress,
-    OnProgress onReceiveProgress,
+    OnProgress? onSendProgress,
+    OnProgress? onReceiveProgress,
   ) async {
     log(tag, '_onCreateOptions');
 
@@ -304,14 +287,14 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
       ..url = onUrl(params);
 
     final headers = onHeaders(params);
-    if (headers is Future<Map<String, dynamic>>) {
+    if (headers is Future<Map<String, dynamic>?>) {
       options.headers = await headers;
     } else {
       options.headers = headers;
     }
 
     final postFillParams = onPostFillParams(data, params);
-    if (postFillParams is Future) {
+    if (postFillParams is Future<dynamic>) {
       options.params = await postFillParams ?? data;
     } else {
       options.params = postFillParams ?? data;
@@ -330,6 +313,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
   ///
   /// 此处为真正启动http请求的方法
   Future<void> _onDoWork(WorkFuture<D, T> future, T data) async {
+    log(tag, 'onWillRequest');
     final willRequest = onWillRequest(data);
     if (willRequest is Future<void>) {
       await willRequest;
@@ -340,14 +324,14 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
     }
 
     unawaited(future.catchError(
-      (_) => data.options.cancelToken.cancel(),
+      (_) => data.options?.cancelToken.cancel(),
       test: (error) => error is WorkCanceled,
     ));
 
     // 创建网络请求工具
-    final request = onWorkRequest() ?? workRequest;
+    final request = onWorkRequest();
 
-    data._response = await request(tag, data.options);
+    data._response = await request(tag, data.options!);
 
     if (future._isCanceled) {
       return;
@@ -358,153 +342,94 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
 
   /// 解析响应数据
   Future<void> _onParseResponse(T data) async {
-    log(tag, '_onParse response parse start');
-
-    if (data.response.success) {
+    if (data.response!.success) {
       // 解析数据
       if (await _onParse(data)) {
         // 解析成功
-        log(tag, '_onParseResponse result parse success onParseSuccess invoke');
-        // 解析成功回调
+        log(tag, 'onParseSuccess');
         final parseSuccess = onParseSuccess(data);
         if (parseSuccess is Future<void>) {
           await parseSuccess;
         }
-        if (data.success) {
-          log(tag, 'work success');
-        } else {
-          log(tag, 'work failed');
-        }
       } else {
         // 解析失败
-        log(tag, '_onParseResponse result parse failed onParseFailed invoke');
-        // 解析失败回调
         data._success = false;
-        data.response.errorType = HttpErrorType.parse;
-        final parseFailed = onParseFailed(data);
-        if (parseFailed is Future<String>) {
-          data._message = await parseFailed;
-        } else {
-          data._message = parseFailed;
-        }
+        data.response!.errorType = HttpErrorType.parse;
+        log(tag, 'onParseFailed');
+        data._message = onParseFailed(data);
       }
-    } else if (data.response.errorType == HttpErrorType.response) {
+    } else if (data.response!.errorType == HttpErrorType.response) {
       // 网络请求失败
-      log(tag,
-          '_onParseResponse network request false onNetworkRequestFailed invoke');
-
-      // 网络请求失败回调
-      final networkRequestFailed = onNetworkRequestFailed(data);
-      if (networkRequestFailed is Future<String>) {
-        data._message = await networkRequestFailed;
-      } else {
-        data._message = networkRequestFailed;
-      }
+      log(tag, 'onNetworkRequestFailed');
+      data._message = onNetworkRequestFailed(data);
     } else {
       // 网络连接失败
-      log(tag, '_onParseResponse network error onNetworkError invoke');
-
-      // 网络错误回调
-      final networkError = onNetworkError(data);
-      if (networkError is Future<String>) {
-        data._message = await networkError;
-      } else {
-        data._message = networkError;
-      }
+      log(tag, 'onNetworkError');
+      data._message = onNetworkError(data);
     }
   }
 
   /// 解析响应体，返回解析结果
   Future<bool> _onParse(T data) async {
-    log(tag, '_onParse start');
-    final checkResponse = onCheckResponse(data);
-    final checkResponseResult =
-        (checkResponse is Future<bool>) ? await checkResponse : checkResponse;
-    if (!checkResponseResult) {
-      // 通信异常
-      log(tag, '_onParse response body error');
-      return false;
-    }
-
     try {
       // 提取服务执行结果
-      final responseResult = onResponseResult(data);
-      if (responseResult is Future<bool>) {
-        data._success = await responseResult;
-      } else {
-        data._success = responseResult;
-      }
-
-      log(tag, '_onParse request result:${data.success}');
+      log(tag, 'onRequestResult');
+      data._success = onResponseResult(data);
 
       if (data.success) {
         // 服务请求成功回调
-        log(tag, '_onParse onRequestSuccess invoked');
+        log(tag, 'onRequestSuccess');
         final responseSuccess = onResponseSuccess(data);
-        if (responseSuccess is Future<D>) {
+        if (responseSuccess is Future<D?>) {
           data._result = await responseSuccess;
         } else {
           data._result = responseSuccess;
         }
 
         // 提取服务返回的消息
-        final requestSuccessMessage = onRequestSuccessMessage(data);
-        if (requestSuccessMessage is Future<String>) {
-          data._message = await requestSuccessMessage;
-        } else {
-          data._message = requestSuccessMessage;
-        }
+        log(tag, 'onRequestSuccessMessage');
+        data._message = onRequestSuccessMessage(data);
       } else {
         // 服务请求失败回调
-        log(tag, '_onParse onRequestFailed invoked');
+        log(tag, 'onRequestFailed');
         final requestFailed = onRequestFailed(data);
-        if (requestFailed is Future<D>) {
+        if (requestFailed is Future<D?>) {
           data._result = await requestFailed;
         } else {
           data._result = requestFailed;
         }
 
         // 提取服务返回的消息
-        final requestFailedMessage = onRequestFailedMessage(data);
-        if (requestFailedMessage is Future<String>) {
-          data._message = await requestFailedMessage;
-        } else {
-          data._message = requestFailedMessage;
-        }
-        data.response.errorType = HttpErrorType.task;
+        log(tag, 'onRequestFailedMessage');
+        data._message = onRequestFailedMessage(data);
+        data.response!.errorType = HttpErrorType.task;
       }
-      log(tag, '_onParse request message:', data.message);
 
       return true;
     } catch (e) {
-      log(tag, '_onParse error:', e);
       return false;
-    } finally {
-      log(tag, '_onParse end');
     }
   }
 
   /// 任务完成后置方法
   Future<void> _onStopWork(T data) async {
-    log(tag, 'onStopWork invoked');
     try {
       // 不同结果的后继执行
       if (data.success) {
-        log(tag, 'onSuccess invoke');
+        log(tag, 'onSuccess');
         final success = onSuccess(data);
         if (success is Future<void>) {
           await success;
         }
       } else {
-        log(tag, 'onFailed invoke');
+        log(tag, 'onFailed message:${data.message}');
         final failed = onFailed(data);
         if (failed is Future<void>) {
           await failed;
         }
       }
-    } catch (e) {
-      log(tag, 'onStopWork failed', e);
-    }
+      // ignore: empty_catches
+    } catch (e) {}
   }
 }
 
@@ -523,8 +448,8 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   WorkFuture<D, T> start([
     List params = const [],
     int retry = 0,
-    OnProgress onSendProgress,
-    OnProgress onReceiveProgress,
+    OnProgress? onSendProgress,
+    OnProgress? onReceiveProgress,
   ]);
 
   /// 创建数据模型对象的实例
@@ -546,7 +471,7 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 但是任务任然可以正常返回并执行生命周期[onFailed]，[onFinish]。
   /// * 返回错误消息内容，将会设置给[WorkData.message]
   @protected
-  FutureOr<String> onParamsError(List params) => null;
+  String? onParamsError(List params) => null;
 
   /// 返回请求实现方法
   ///
@@ -561,7 +486,7 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 返回null或key不存在则表示使用默认访问器
   /// 关联性请查看[work_config.dart]
   @protected
-  String get clientKey => null;
+  String? get clientKey => null;
 
   /// 网络请求方法
   @protected
@@ -577,7 +502,7 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   ///
   /// [params]为任务传入的参数
   @protected
-  FutureOr<Map<String, dynamic>> onHeaders(List params) => null;
+  FutureOr<Map<String, dynamic>?> onHeaders(List params) => null;
 
   /// 填充请求所需的前置参数
   ///
@@ -632,28 +557,19 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 即在[_onParse]返回false时调用，
   /// 返回响应数据解析失败时的消息，即[WorkData.message]字段
   @protected
-  FutureOr<String> onParseFailed(T data) => null;
+  String? onParseFailed(T data) => null;
 
   /// 网络连接建立成功，但是请求失败时调用
   ///
   /// 即响应码不是200，如4xx，5xx，返回网络请求失败时的消息，即[WorkData.message]字段
   @protected
-  FutureOr<String> onNetworkRequestFailed(T data) => null;
+  String? onNetworkRequestFailed(T data) => null;
 
   /// 网络连接建立失败时调用，即网络不可用
   ///
   /// 返回设置网络无效时的消息，即[WorkData.message]字段
   @protected
-  FutureOr<String> onNetworkError(T data) => null;
-
-  /// 检测响应结果是否符合预期（数据类型或是否包含特定字段），也可以做验签
-  ///
-  /// * 通常[data.response]类型是[onConfigOptions]中设置的[Options.responseType]决定的。
-  /// * 在一般请求中默认为[ResponseType.json]则[data.response]为[Map]类型的json数据。
-  /// * 下载请求中默认为[ResponseType.stream]则[data.response]为[Stream]。
-  /// * 如果设置为[ResponseType.plain]则[data.response]为字符串。
-  @protected
-  FutureOr<bool> onCheckResponse(T data) => true;
+  String? onNetworkError(T data) => null;
 
   /// 提取服务执行结果
   ///
@@ -663,7 +579,7 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// * 下载请求中默认为[ResponseType.stream]则[data.response]为[Stream]。
   /// * 如果设置为[ResponseType.plain]则[data.response]为字符串。
   @protected
-  FutureOr<bool> onResponseResult(T data);
+  bool onResponseResult(T data);
 
   /// 提取服务执行成功时返回的真正有用结果数据
   ///
@@ -674,25 +590,25 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// * 下载请求中默认为[ResponseType.stream]则[data.response]为[Stream]。
   /// * 如果设置为[ResponseType.plain]则[data.response]为字符串。
   @protected
-  FutureOr<D> onResponseSuccess(T data);
+  FutureOr<D?> onResponseSuccess(T data);
 
   /// 提取或设置服务返回的成功结果消息
   ///
   /// 在服务请求成功后调用，即[onResponseResult]返回值为true时被调用。
   @protected
-  FutureOr<String> onRequestSuccessMessage(T data) => null;
+  String? onRequestSuccessMessage(T data) => null;
 
   /// 提取或设置服务执行失败时的返回结果数据
   ///
   /// 在服务请求失败后调用，即[onResponseResult]返回值为false时被调用，
   /// 用于生成请求失败后的任务返回真正结果数据对象[D]，可能是一个默认值。
   @protected
-  FutureOr<D> onRequestFailed(T data) => null;
+  FutureOr<D?> onRequestFailed(T data) => null;
 
   /// 提取或设置服务返回的失败结果消息
   ///
   /// 在服务请求失败后调用，即[onResponseResult]返回值为false时被调用。
-  FutureOr<String> onRequestFailedMessage(T data) => null;
+  String? onRequestFailedMessage(T data) => null;
 
   /// 本次任务执行成功后执行
   ///

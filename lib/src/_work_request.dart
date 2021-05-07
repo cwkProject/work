@@ -1,6 +1,7 @@
 // Created by 超悟空 on 2021/3/23.
 
 import 'dart:convert';
+import 'dart:developer';
 
 import '_dio_request.dart' as http;
 import '_print.dart';
@@ -12,7 +13,7 @@ import 'work_model.dart';
 /// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回响应数据
 Future<Response> workRequest(String tag, Options options) async {
   if (!options.url.startsWith(RegExp(r'https?://')) &&
-      (dioMap[options.clientKey] ?? dio).options.baseUrl == null) {
+      (dioMap[options.clientKey] ?? dio).options.baseUrl.isEmpty) {
     // 地址不合法
     log(tag, 'url error');
     return Response(errorType: HttpErrorType.other);
@@ -21,16 +22,21 @@ Future<Response> workRequest(String tag, Options options) async {
   log(tag, 'http', options);
 
   Response response;
-  for (var i = 0; i <= options.retry; i++) {
-    if (i > 0) {
-      log(tag, 'retry ', i);
-    }
-    response = await http.request(tag, options);
+  var i = 0;
 
-    if (response.success) {
+  do {
+    if (i > 0) {
+      log(tag, 'retry $i');
+    }
+    final startTime = Timeline.now;
+    response = await http.request(tag, options);
+    log(tag, 'request use ${Timeline.now - startTime}μs');
+
+    if (response.success || response.errorType == HttpErrorType.cancel) {
       break;
     }
-  }
+    i++;
+  } while (i <= options.retry);
 
   log(tag, 'http', response);
 
