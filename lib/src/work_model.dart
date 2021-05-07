@@ -15,6 +15,11 @@ typedef OnProgress = void Function(int current, int total);
 /// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回响应数据
 typedef WorkRequest = Future<Response> Function(String tag, Options options);
 
+/// 输出日志函数
+///
+/// [tag]日志标签，[message]日志内容，[data]额外数据
+typedef WorkLogger = void Function(String tag, String? message, [Object? data]);
+
 /// 多分块提交格式
 ///
 /// 如果默认的post使用'multipart/form-data'方式提交，
@@ -48,6 +53,9 @@ class Options {
   Map<String, dynamic>? headers;
 
   /// 最终用于发送的请求参数
+  ///
+  /// 支持多种格式，需要与[contentType]匹配
+  /// 可以使用自行拼装的dio中的FormData数据
   dynamic params;
 
   ///  发送超时
@@ -116,7 +124,7 @@ class Response {
   /// 异常类型
   ///
   /// null表示无异常
-  HttpErrorType? errorType;
+  WorkErrorType? errorType;
 
   /// 将头信息转换成文本输出
   String get _headersToString {
@@ -273,8 +281,12 @@ enum HttpMethod {
   download,
 }
 
-/// http请求的异常类型
-enum HttpErrorType {
+/// Work的异常类型
+enum WorkErrorType {
+
+  /// 任务传入参数错误
+  params,
+
   /// 连接超时
   connectTimeout,
 

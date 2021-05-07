@@ -3,10 +3,25 @@
 import 'package:dio/dio.dart';
 
 import '_work_request.dart' as com;
-import 'work_model.dart' show WorkRequest;
+import '_print.dart';
+import 'work_model.dart' show WorkRequest, WorkLogger;
 
 /// 是否开启debug模式，开启后会输出日志
-bool debugWork = true;
+bool _debugWork = true;
+
+/// 是否开启debug模式，开启后会输出日志
+bool get debugWork => _debugWork;
+
+/// 是否开启debug模式，开启后会输出日志
+set debugWork(bool value) {
+  _debugWork = value;
+
+  if (value) {
+    log = _workLog;
+  } else {
+    log = logEmpty;
+  }
+}
 
 /// 全局默认使用的[WorkConfig]配置
 WorkConfig workConfig = WorkConfig(
@@ -39,4 +54,20 @@ class WorkConfig {
 
   /// 全局实际执行网络请求的方法
   final WorkRequest workRequest;
+}
+
+/// work库的日志打印函数，可以覆盖
+///
+/// 当[debugWork]为true时生效
+WorkLogger _workLog = logImp;
+
+/// work库的日志打印函数，可以覆盖
+///
+/// 当[debugWork]为true时生效
+set workLog(WorkLogger value) {
+  _workLog = value;
+
+  if (debugWork) {
+    log = value;
+  }
 }

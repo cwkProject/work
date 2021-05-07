@@ -23,7 +23,7 @@ Future<work.Response> request(String tag, work.Options options) async {
 
   var success = false;
 
-  work.HttpErrorType? errorType;
+  work.WorkErrorType? errorType;
 
   final client =
       (config.workConfigs[options.configKey] ?? config.workConfig).dio;
@@ -78,7 +78,7 @@ Future<work.Response> request(String tag, work.Options options) async {
     errorType = _onConvertErrorType(e.type);
   } catch (e) {
     log(tag, 'http other error', e);
-    errorType = work.HttpErrorType.other;
+    errorType = work.WorkErrorType.other;
   }
 
   if (dioResponse != null) {
@@ -97,20 +97,20 @@ Future<work.Response> request(String tag, work.Options options) async {
 }
 
 /// 转换dio异常类型到work库异常类型
-work.HttpErrorType _onConvertErrorType(dio.DioErrorType type) {
+work.WorkErrorType _onConvertErrorType(dio.DioErrorType type) {
   switch (type) {
     case dio.DioErrorType.connectTimeout:
-      return work.HttpErrorType.connectTimeout;
+      return work.WorkErrorType.connectTimeout;
     case dio.DioErrorType.sendTimeout:
-      return work.HttpErrorType.sendTimeout;
+      return work.WorkErrorType.sendTimeout;
     case dio.DioErrorType.receiveTimeout:
-      return work.HttpErrorType.receiveTimeout;
+      return work.WorkErrorType.receiveTimeout;
     case dio.DioErrorType.response:
-      return work.HttpErrorType.response;
+      return work.WorkErrorType.response;
     case dio.DioErrorType.cancel:
-      return work.HttpErrorType.cancel;
+      return work.WorkErrorType.cancel;
     default:
-      return work.HttpErrorType.other;
+      return work.WorkErrorType.other;
   }
 }
 

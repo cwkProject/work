@@ -20,7 +20,7 @@ Future<Response> workRequest(String tag, Options options) async {
           .isEmpty) {
     // 地址不合法
     log(tag, 'url error');
-    return Response(errorType: HttpErrorType.other);
+    return Response(errorType: WorkErrorType.other);
   }
 
   log(tag, 'http', options);
@@ -36,7 +36,7 @@ Future<Response> workRequest(String tag, Options options) async {
     response = await http.request(tag, options);
     log(tag, 'request use ${Timeline.now - startTime}μs');
 
-    if (response.success || response.errorType == HttpErrorType.cancel) {
+    if (response.success || response.errorType == WorkErrorType.cancel) {
       break;
     }
     i++;

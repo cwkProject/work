@@ -4,7 +4,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
-import 'work_config.dart';
+import 'work_model.dart' show WorkLogger;
 
 /// 每次打印的最大长度
 const _logBufferSize = 800;
@@ -12,11 +12,12 @@ const _logBufferSize = 800;
 /// 输出日志
 ///
 /// [tag]日志标签，[message]日志内容，额外数据
-void log(String tag, String? message, [Object? data]) {
-  if (!debugWork) {
-    return;
-  }
+WorkLogger log = logImp;
 
+/// 默认日志输出方法
+///
+/// [tag]日志标签，[message]日志内容，额外数据
+void logImp(String tag, String? message, [Object? data]) {
   final finalMessage = '$message ${data ?? ''}';
 
   for (final it in _wrap(finalMessage)) {
@@ -24,7 +25,10 @@ void log(String tag, String? message, [Object? data]) {
   }
 }
 
-/// 按换行父切割字符串为若干组
+/// 空日志输出
+void logEmpty(String tag, String? message, [Object? data]){}
+
+/// 按换行符切割字符串为若干组
 ///
 /// [src]原字符串
 Iterable<String> _wrap(String src) sync* {
