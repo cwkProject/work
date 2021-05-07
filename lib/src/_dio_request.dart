@@ -2,7 +2,7 @@
 
 import 'dart:async';
 
-import 'package:dio/dio.dart' as dio;
+import 'package:dio/dio.dart';
 
 import '_convert.dart'
 // ignore: uri_does_not_exist
@@ -10,31 +10,29 @@ import '_convert.dart'
 // ignore: uri_does_not_exist
     if (dart.library.io) '_convert_native.dart';
 import '_print.dart';
-import 'work_config.dart' as config;
-import 'work_model.dart' as work;
+import 'work_config.dart';
+import 'work_model.dart';
 
 /// 发起请求
 ///
 /// dio实现
-Future<work.Response> request(String tag, work.Options options) async {
+Future<HttpResponse> request(String tag, HttpOptions options) async {
   final dioOptions = _onConfigOptions(tag, options);
 
-  dio.Response? dioResponse;
+  Response? dioResponse;
 
   var success = false;
 
-  work.WorkErrorType? errorType;
+  WorkErrorType? errorType;
 
-  final client =
-      (config.workConfigs[options.configKey] ?? config.workConfig).dio;
+  final client = (workConfigs[options.configKey] ?? workConfig).dio;
 
-  final isFormData = options.method == work.HttpMethod.upload ||
-      (options.contentType ?? client.options.contentType) ==
-          work.multipartFormData;
+  final isFormData = options.method == HttpMethod.upload ||
+      (options.contentType ?? client.options.contentType) == multipartFormData;
 
   try {
     switch (options.method) {
-      case work.HttpMethod.download:
+      case HttpMethod.download:
         log(tag, 'download path:${options.downloadPath}');
 
         dioResponse = await client.download(
@@ -46,8 +44,8 @@ Future<work.Response> request(String tag, work.Options options) async {
           onReceiveProgress: options.onReceiveProgress,
         );
         break;
-      case work.HttpMethod.get:
-      case work.HttpMethod.head:
+      case HttpMethod.get:
+      case HttpMethod.head:
         dioResponse = await client.request(
           options.url,
           queryParameters: options.params,
@@ -70,7 +68,7 @@ Future<work.Response> request(String tag, work.Options options) async {
     }
 
     success = true;
-  } on dio.DioError catch (e) {
+  } on DioError catch (e) {
     log(tag, 'http error', e.type);
 
     dioResponse = e.response;
@@ -78,82 +76,82 @@ Future<work.Response> request(String tag, work.Options options) async {
     errorType = _onConvertErrorType(e.type);
   } catch (e) {
     log(tag, 'http other error', e);
-    errorType = work.WorkErrorType.other;
+    errorType = WorkErrorType.other;
   }
 
   if (dioResponse != null) {
-    return work.Response(
+    return HttpResponse(
       success: success,
       statusCode: dioResponse.statusCode ?? 0,
       headers: dioResponse.headers.map,
-      data: dioResponse.requestOptions.responseType == dio.ResponseType.stream
+      data: dioResponse.requestOptions.responseType == ResponseType.stream
           ? dioResponse.data.stream
           : dioResponse.data,
       errorType: errorType,
     );
   } else {
-    return work.Response(errorType: errorType);
+    return HttpResponse(errorType: errorType);
   }
 }
 
 /// 转换dio异常类型到work库异常类型
-work.WorkErrorType _onConvertErrorType(dio.DioErrorType type) {
+WorkErrorType _onConvertErrorType(DioErrorType type) {
   switch (type) {
-    case dio.DioErrorType.connectTimeout:
-      return work.WorkErrorType.connectTimeout;
-    case dio.DioErrorType.sendTimeout:
-      return work.WorkErrorType.sendTimeout;
-    case dio.DioErrorType.receiveTimeout:
-      return work.WorkErrorType.receiveTimeout;
-    case dio.DioErrorType.response:
-      return work.WorkErrorType.response;
-    case dio.DioErrorType.cancel:
-      return work.WorkErrorType.cancel;
+    case DioErrorType.connectTimeout:
+      return WorkErrorType.connectTimeout;
+    case DioErrorType.sendTimeout:
+      return WorkErrorType.sendTimeout;
+    case DioErrorType.receiveTimeout:
+      return WorkErrorType.receiveTimeout;
+    case DioErrorType.response:
+      return WorkErrorType.response;
+    case DioErrorType.cancel:
+      return WorkErrorType.cancel;
     default:
-      return work.WorkErrorType.other;
+      return WorkErrorType.other;
   }
 }
 
 /// 生成dio专用配置
-dio.Options _onConfigOptions(String tag, work.Options options) {
-  final dioOptions = dio.Options();
+Options _onConfigOptions(String tag, HttpOptions options) {
+  final dioOptions = Options();
 
   switch (options.method) {
-    case work.HttpMethod.get:
-    case work.HttpMethod.download:
+    case HttpMethod.get:
+    case HttpMethod.download:
       dioOptions.method = 'GET';
       break;
-    case work.HttpMethod.post:
-    case work.HttpMethod.upload:
+    case HttpMethod.post:
+    case HttpMethod.upload:
       dioOptions.method = 'POST';
       break;
-    case work.HttpMethod.put:
+    case HttpMethod.put:
       dioOptions.method = 'PUT';
       break;
-    case work.HttpMethod.head:
+    case HttpMethod.head:
       dioOptions.method = 'HEAD';
       break;
-    case work.HttpMethod.patch:
+    case HttpMethod.patch:
       dioOptions.method = 'PATCH';
       break;
-    case work.HttpMethod.delete:
+    case HttpMethod.delete:
       dioOptions.method = 'DELETE';
       break;
   }
 
   if (options.responseType != null) {
     switch (options.responseType!) {
-      case work.ResponseType.json:
-        dioOptions.responseType = dio.ResponseType.json;
+      case HttpResponseType.json:
+        dioOptions.responseType = ResponseType.json;
         break;
-      case work.ResponseType.stream:
-        dioOptions.responseType = dio.ResponseType.stream;
+      case HttpResponseType.stream:
+        dioOptions.responseType = ResponseType.stream;
         break;
-      case work.ResponseType.plain:
-        dioOptions.responseType = dio.ResponseType.plain;
+      case HttpResponseType.plain:
+        dioOptions.responseType = ResponseType.plain;
         break;
-      case work.ResponseType.bytes:
-        dioOptions.responseType = dio.ResponseType.bytes;
+      case HttpResponseType.bytes:
+        dioOptions.responseType = ResponseType.bytes;
         break;
     }
   }
@@ -164,10 +162,10 @@ dio.Options _onConfigOptions(String tag, work.Options options) {
   dioOptions.receiveTimeout = options.readTimeout;
   dioOptions.sendTimeout = options.sendTimeout;
 
-  options.cancelToken.data = dio.CancelToken();
+  options.cancelToken.data = CancelToken();
 
   options.cancelToken.whenCancel.then((cancelToken) {
-    if (cancelToken is dio.CancelToken && !cancelToken.isCancelled) {
+    if (cancelToken is CancelToken && !cancelToken.isCancelled) {
       log(tag, 'http cancel');
       cancelToken.cancel();
     }

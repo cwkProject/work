@@ -18,12 +18,12 @@ class WorkData<T> {
   T? _result;
 
   /// 用于网络请求使用的参数
-  Options? _options;
+  HttpOptions? _options;
 
   /// http响应数据
   ///
   /// 在[Work._onParseResponse]生命周期阶段开始出现
-  Response? _response;
+  HttpResponse? _response;
 
   /// 异常类型
   ///
@@ -40,12 +40,12 @@ class WorkData<T> {
   T? get result => _result;
 
   /// 用于网络请求使用的参数
-  Options? get options => _options;
+  HttpOptions? get options => _options;
 
   /// http响应数据
   ///
   /// 在[Work._onParseResponse]生命周期阶段开始出现
-  Response? get response => _response;
+  HttpResponse? get response => _response;
 
   /// 异常类型
   ///
@@ -98,7 +98,7 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
 
   @override
   Future<R> then<R>(FutureOr<R> Function(T value) onValue,
-      {Function? onError}) =>
+          {Function? onError}) =>
       _completer.future.then<R>(onValue, onError: onError);
 
   @override

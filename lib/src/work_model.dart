@@ -13,7 +13,8 @@ typedef OnProgress = void Function(int current, int total);
 /// 执行网络请求方法
 ///
 /// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回响应数据
-typedef WorkRequest = Future<Response> Function(String tag, Options options);
+typedef WorkRequest = Future<HttpResponse> Function(
+    String tag, HttpOptions options);
 
 /// 输出日志函数
 ///
@@ -28,11 +29,11 @@ typedef WorkLogger = void Function(String tag, String? message, [Object? data]);
 const multipartFormData = 'multipart/form-data';
 
 /// 请求配置信息
-class Options {
+class HttpOptions {
   /// 用于取消本次请求的工具，由框架管理，无法被覆盖
-  final cancelToken = CancelToken();
+  final cancelToken = HttpCancelToken();
 
-  /// 完整的请求地址（包含http(s)://），或者是相对地址（需调用过[mergeBaseOptions]设置全局根地址[baseUrl]）
+  /// 完整的请求地址（包含http(s)://），或者是相对地址（需调用过[workConfig]设置全局dio根地址）
   late String url;
 
   /// Http请求方法
@@ -77,8 +78,8 @@ class Options {
 
   /// [responseType] 表示期望以哪种格式(方式)接受响应数据
   ///
-  /// 默认值是[ResponseType.json]
-  ResponseType? responseType;
+  /// 默认值是[HttpResponseType.json]
+  HttpResponseType? responseType;
 
   /// 下载文件的存放路径，仅[HttpMethod.download]中有效
   String? downloadPath;
@@ -97,9 +98,9 @@ headers: $headers
 params: $params''';
 }
 
-/// Http响应数据
-class Response {
-  Response({
+/// 实际的Http响应数据
+class HttpResponse {
+  HttpResponse({
     this.success = false,
     this.data,
     this.headers,
@@ -109,7 +110,7 @@ class Response {
 
   /// 响应数据
   ///
-  /// 数据类型由[ResponseType]决定
+  /// 数据类型由[HttpResponseType]决定
   dynamic data;
 
   /// 响应头信息
@@ -146,8 +147,8 @@ headers: $_headersToString;
 body: $_bodyToString''';
 }
 
-/// 取消请求工具
-class CancelToken {
+/// 取消Http的请求工具
+class HttpCancelToken {
   /// 用于发射取消请求
   final _completer = Completer();
 
@@ -237,8 +238,8 @@ class UploadFileInfo {
 /// 通常标记为 @JsonKey(toJson: workFileToJsonConvert)
 dynamic workFileToJsonConvert(dynamic file) => file;
 
-/// 响应数据格式
-enum ResponseType {
+/// http响应的原始数据格式
+enum HttpResponseType {
   /// json类型
   json,
 
@@ -283,7 +284,6 @@ enum HttpMethod {
 
 /// Work的异常类型
 enum WorkErrorType {
-
   /// 任务传入参数错误
   params,
 

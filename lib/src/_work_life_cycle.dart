@@ -46,7 +46,7 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 如果要覆盖全局实现，请覆盖[workRequest]
   /// 如果仅覆盖本任务请重写此方法
   @protected
-  WorkRequest onWorkRequest(Options options) =>
+  WorkRequest onWorkRequest(HttpOptions options) =>
       (workConfigs[options.configKey] ?? workConfig).workRequest;
 
   /// 网络请求方法
@@ -86,7 +86,7 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// [onHeaders]中创建的请求头，
   /// 以上属性都可以在这里被覆盖可以被覆盖。
   @protected
-  FutureOr<void> onConfigOptions(Options options) {}
+  FutureOr<void> onConfigOptions(HttpOptions options) {}
 
   /// 填充请求所需的前置参数
   ///
@@ -107,11 +107,11 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   ///
   /// * 适合对参数进行签名（通过项目中实现的定制[Work]基类完成）
   /// * [data]为请求参数集（http请求要发送的参数），由[onPreFillParams]和[onFillParams]生成
-  /// * 如果需要使用其他数据类型作为请求参数，请返回新的数据集合对象，支持[Map]，[List]，[String]([ResponseType.plain])
+  /// * 如果需要使用其他数据类型作为请求参数，请返回新的数据集合对象，支持[Map]，[List]，[String]([HttpResponseType.plain])
   /// * 可以直接在data中增加新参数，也可以返回新集合
   /// * 可以直接返回[data]，不返回参数或返回null则继续使用[data]作为请求参数
   @protected
-  FutureOr<dynamic> onPostFillParams(Map<String, dynamic> data) => null;
+  FutureOr<dynamic> onPostFillParams(Map<String, dynamic>? data) => null;
 
   /// 即将执行网络请求前的回调
   ///
@@ -147,10 +147,10 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 提取服务执行结果
   ///
   /// * http响应成功，从接口响应的数据中提取本次业务请求真正的成功或失败结果。
-  /// * 通常[data.response]类型是[onConfigOptions]中设置的[Options.responseType]决定的。
-  /// * 在一般请求中默认为[ResponseType.json]则[data.response]为[Map]类型的json数据。
-  /// * 下载请求中默认为[ResponseType.stream]则[data.response]为[Stream]。
-  /// * 如果设置为[ResponseType.plain]则[data.response]为字符串。
+  /// * 通常[data.response]类型是[onConfigOptions]中设置的[HttpOptions.responseType]决定的。
+  /// * 在一般请求中默认为[HttpResponseType.json]则[data.response]为[Map]类型的json数据。
+  /// * 下载请求中默认为[HttpResponseType.stream]则[data.response]为[Stream]。
+  /// * 如果设置为[HttpResponseType.plain]则[data.response]为字符串。
   @protected
   bool onRequestResult(T data);
 
@@ -158,10 +158,10 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   ///
   /// * 在服务请求成功后调用，即[onRequestResult]返回值为true时被调用，
   /// 用于生成请求成功后的任务返回真正结果数据对象[D]。
-  /// * 通常[data.response]类型是[onConfigOptions]中设置的[Options.responseType]决定的。
-  /// * 在一般请求中默认为[ResponseType.json]则[data.response]为[Map]类型的json数据。
-  /// * 下载请求中默认为[ResponseType.stream]则[data.response]为[Stream]。
-  /// * 如果设置为[ResponseType.plain]则[data.response]为字符串。
+  /// * 通常[data.response]类型是[onConfigOptions]中设置的[HttpOptions.responseType]决定的。
+  /// * 在一般请求中默认为[HttpResponseType.json]则[data.response]为[Map]类型的json数据。
+  /// * 下载请求中默认为[HttpResponseType.stream]则[data.response]为[Stream]。
+  /// * 如果设置为[HttpResponseType.plain]则[data.response]为字符串。
   @protected
   FutureOr<D?> onRequestSuccess(T data);
 

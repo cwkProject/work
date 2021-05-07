@@ -11,7 +11,7 @@ import 'work_model.dart';
 /// 执行网络请求
 ///
 /// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回响应数据
-Future<Response> workRequest(String tag, Options options) async {
+Future<HttpResponse> workRequest(String tag, HttpOptions options) async {
   if (!options.url.startsWith(RegExp(r'https?://')) &&
       (workConfigs[options.configKey] ?? workConfig)
           .dio
@@ -20,12 +20,12 @@ Future<Response> workRequest(String tag, Options options) async {
           .isEmpty) {
     // 地址不合法
     log(tag, 'url error');
-    return Response(errorType: WorkErrorType.other);
+    return HttpResponse(errorType: WorkErrorType.other);
   }
 
   log(tag, 'http', options);
 
-  Response response;
+  HttpResponse response;
   var i = 0;
 
   do {
@@ -47,7 +47,7 @@ Future<Response> workRequest(String tag, Options options) async {
   // 转换类型
   if (response.success &&
       (options.responseType == null ||
-          options.responseType == ResponseType.json) &&
+          options.responseType == HttpResponseType.json) &&
       response.data is String &&
       response.data.isNotEmpty) {
     response.data = json.decode(response.data);

@@ -121,7 +121,7 @@ abstract class SimpleDownloadWork extends Work<void, SimpleWorkData<void>> {
 
   @mustCallSuper
   @override
-  FutureOr<void> onConfigOptions(Options options) {
+  FutureOr<void> onConfigOptions(HttpOptions options) {
     options.downloadPath = onDownloadPath();
   }
 

@@ -26,7 +26,7 @@ void logImp(String tag, String? message, [Object? data]) {
 }
 
 /// 空日志输出
-void logEmpty(String tag, String? message, [Object? data]){}
+void logEmpty(String tag, String? message, [Object? data]) {}
 
 /// 按换行符切割字符串为若干组
 ///

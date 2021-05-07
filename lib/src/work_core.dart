@@ -141,27 +141,22 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
   }
 
   /// 构建请求选项参数
-  Future<Options> _onCreateOptions(
+  Future<HttpOptions> _onCreateOptions(
     int retry,
     OnProgress? onSendProgress,
     OnProgress? onReceiveProgress,
   ) async {
-    final data = <String, dynamic>{};
+    Map<String, dynamic>? data;
+    Map<String, dynamic>? params;
 
-    final preFillParams = onPreFillParams();
-    var params;
-
-    if (preFillParams is Future<Map<String, dynamic>?>) {
-      params = await preFillParams;
+    var fillParams = onPreFillParams();
+    if (fillParams is Future<Map<String, dynamic>?>) {
+      data = await fillParams;
     } else {
-      params = preFillParams;
+      data = fillParams;
     }
 
-    if (params != null) {
-      data.addAll(params);
-    }
-
-    final fillParams = onFillParams();
+    fillParams = onFillParams();
     if (fillParams is Future<Map<String, dynamic>?>) {
       params = await fillParams;
     } else {
@@ -169,10 +164,12 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
     }
 
     if (params != null) {
-      data.addAll(params);
+      data = (data?..addAll(params)) ?? params;
     }
 
-    final options = Options()
+    final postFillParams = onPostFillParams(data);
+
+    final options = HttpOptions()
       ..retry = retry
       ..onSendProgress = onSendProgress
       ..onReceiveProgress = onReceiveProgress
@@ -181,18 +178,17 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
       ..contentType = onContentType()
       ..url = onUrl();
 
+    if (postFillParams is Future<dynamic>) {
+      options.params = await postFillParams ?? data;
+    } else {
+      options.params = postFillParams ?? data;
+    }
+
     final headers = onHeaders();
     if (headers is Future<Map<String, dynamic>?>) {
       options.headers = await headers;
     } else {
       options.headers = headers;
-    }
-
-    final postFillParams = onPostFillParams(data);
-    if (postFillParams is Future) {
-      options.params = await postFillParams ?? data;
-    } else {
-      options.params = postFillParams ?? data;
     }
 
     final configOptions = onConfigOptions(options);
@@ -327,5 +323,3 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
     } catch (e) {}
   }
 }
-
-
