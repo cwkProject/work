@@ -59,7 +59,7 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
 
   @override
   FutureOr<D?> onResponseSuccess(SimpleWorkData<D> data) {
-    if (data.response!.data[result] == null) {
+    if (data.response!.data?[result] == null) {
       return onDefaultResult(data);
     } else {
       return onExtractResult(data.response!.data[result], data);
@@ -67,12 +67,13 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   }
 
   @override
-  bool onResponseResult(SimpleWorkData<D> data) => data.response!.data['state'];
+  bool onResponseResult(SimpleWorkData<D> data) =>
+      data.response!.data?['state'] == true;
 
   @mustCallSuper
   @override
   FutureOr<D?> onRequestFailed(SimpleWorkData<D> data) {
-    if (data.response!.data['errorCode'] != null) {
+    if (data.response!.data?['errorCode'] != null) {
       data._errorCode = data.response!.data['errorCode'];
     }
 
@@ -81,11 +82,11 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
 
   @override
   String? onRequestSuccessMessage(SimpleWorkData<D> data) =>
-      data.response!.data['message'];
+      data.response!.data?['message'];
 
   @override
   String? onRequestFailedMessage(SimpleWorkData<D> data) =>
-      data.response!.data['message'];
+      data.response!.data?['message'];
 
   /// 生成响应成功的结果数据
   ///

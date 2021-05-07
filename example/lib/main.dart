@@ -1,7 +1,7 @@
 import 'package:work/work.dart';
 
 void main() async {
-  final data = await TestWork().start(['xxx']);
+  final data = await TestWork().start(['超悟空',32]);
 
   if (data.success) {
     print(data.result);
@@ -9,28 +9,19 @@ void main() async {
     print(data.message);
     print(data.errorCode);
   }
-
-  final download = await DownloadWork().start([
-    'file:/xxx/test.jpg',
-    'key',
-    123,
-  ]);
-
-  if (download.success) {
-    // show('file:/xxx/test.jpg')
-  }
 }
 
 class TestWork extends SimpleWork<String> {
   @override
-  String onExtractResult(resultData, data) => resultData['account'];
+  String onExtractResult(resultData, data) => resultData['args'];
 
   @override
-  String onUrl(List params) => 'https://api.example.com/test';
+  String onUrl(List params) => 'http://httpbin.org/get';
 
   @override
   void onFillParams(Map<String, dynamic> data, List params) {
-    data['param1'] = params[0];
+    data['name'] = params[0];
+    data['age'] = params[1];
   }
 
   @override

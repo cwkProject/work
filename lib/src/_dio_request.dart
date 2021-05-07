@@ -94,6 +94,24 @@ Future<work.Response> request(String tag, work.Options options) async {
   }
 }
 
+/// 转换dio异常类型到work库异常类型
+work.HttpErrorType onConvertErrorType(dio.DioErrorType type) {
+  switch (type) {
+    case dio.DioErrorType.connectTimeout:
+      return work.HttpErrorType.connectTimeout;
+    case dio.DioErrorType.sendTimeout:
+      return work.HttpErrorType.sendTimeout;
+    case dio.DioErrorType.receiveTimeout:
+      return work.HttpErrorType.receiveTimeout;
+    case dio.DioErrorType.response:
+      return work.HttpErrorType.response;
+    case dio.DioErrorType.cancel:
+      return work.HttpErrorType.cancel;
+    default:
+      return work.HttpErrorType.other;
+  }
+}
+
 /// 生成dio专用配置
 dio.Options _onConfigOptions(String tag, work.Options options) {
   final dioOptions = dio.Options();
