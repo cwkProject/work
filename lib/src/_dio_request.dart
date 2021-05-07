@@ -29,7 +29,8 @@ Future<work.Response> request(String tag, work.Options options) async {
       (config.workConfigs[options.configKey] ?? config.workConfig).dio;
 
   final isFormData = options.method == work.HttpMethod.upload ||
-      (options.contentType ?? client.options.contentType) == work.multipartFormData;
+      (options.contentType ?? client.options.contentType) ==
+          work.multipartFormData;
 
   try {
     switch (options.method) {
@@ -74,7 +75,7 @@ Future<work.Response> request(String tag, work.Options options) async {
 
     dioResponse = e.response;
     success = false;
-    errorType = onConvertErrorType(e.type);
+    errorType = _onConvertErrorType(e.type);
   } catch (e) {
     log(tag, 'http other error', e);
     errorType = work.HttpErrorType.other;
@@ -92,6 +93,24 @@ Future<work.Response> request(String tag, work.Options options) async {
     );
   } else {
     return work.Response(errorType: errorType);
+  }
+}
+
+/// 转换dio异常类型到work库异常类型
+work.HttpErrorType _onConvertErrorType(dio.DioErrorType type) {
+  switch (type) {
+    case dio.DioErrorType.connectTimeout:
+      return work.HttpErrorType.connectTimeout;
+    case dio.DioErrorType.sendTimeout:
+      return work.HttpErrorType.sendTimeout;
+    case dio.DioErrorType.receiveTimeout:
+      return work.HttpErrorType.receiveTimeout;
+    case dio.DioErrorType.response:
+      return work.HttpErrorType.response;
+    case dio.DioErrorType.cancel:
+      return work.HttpErrorType.cancel;
+    default:
+      return work.HttpErrorType.other;
   }
 }
 
