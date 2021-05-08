@@ -12,9 +12,9 @@ import 'work_config.dart';
 import 'package:pedantic/pedantic.dart';
 import '_work_request.dart';
 
-part '_work_life_cycle.dart';
+part 'work_life_cycle.dart';
 
-part '_work_data.dart';
+part 'work_data.dart';
 
 /// 任务流程的基本模型
 ///
@@ -216,6 +216,8 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
       retry = 0;
     }
 
+    log(_tag, 'original', data.options);
+
     HttpResponse httpResponse;
     var i = 0;
 
@@ -229,6 +231,8 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
         final response = await call();
         httpResponse = response.toHttpResponse();
         log(_tag, 'request use ${Timeline.now - startTime}μs');
+        log(_tag, 'final url:', _FinalRequestOptions(response.requestOptions));
+        log(_tag, 'http', httpResponse);
         break;
       } on DioError catch (e) {
         log(_tag, 'http error', e.type);
@@ -246,6 +250,9 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
         data
           .._response = e.response?.toHttpResponse()
           .._errorType = errorType;
+
+        log(_tag, 'final url:', _FinalRequestOptions(e.requestOptions));
+        log(_tag, 'http', data.response);
 
         if (e.type == DioErrorType.response) {
           // 网络请求失败
@@ -279,17 +286,17 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
 
       if (data.success) {
         // 服务请求成功回调
-        log(_tag, 'onRequestSuccess');
-        final responseSuccess = onRequestSuccess(data);
-        if (responseSuccess is Future<D?>) {
-          data._result = await responseSuccess;
+        log(_tag, 'onRequestSuccessful');
+        final responseSuccessful = onRequestSuccessful(data);
+        if (responseSuccessful is Future<D?>) {
+          data._result = await responseSuccessful;
         } else {
-          data._result = responseSuccess;
+          data._result = responseSuccessful;
         }
 
         // 提取服务返回的消息
         log(_tag, 'onRequestSuccessMessage');
-        data._message = onRequestSuccessMessage(data);
+        data._message = onRequestSuccessfulMessage(data);
       } else {
         // 服务请求失败回调
         log(_tag, 'onRequestFailed');

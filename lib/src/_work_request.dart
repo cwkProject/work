@@ -26,7 +26,9 @@ Future<HttpCall> workRequest(String tag, WorkRequestOptions options) async {
   switch (options.method) {
     case HttpMethod.get:
     case HttpMethod.head:
-      queryParameters = options.params;
+      if (options.params is Map<String, dynamic>) {
+        queryParameters = options.params;
+      }
       break;
     default:
       final isFormData = (options.contentType ?? client.options.contentType) == multipartFormData;
@@ -66,8 +68,9 @@ extension DioErrorConvert on DioErrorType {
   }
 }
 
-/// dio响应扩展
+/// [Response]扩展
 extension ResponseConvert on Response {
+  /// 转行到[HttpResponse]
   HttpResponse toHttpResponse() {
     final success = requestOptions.validateStatus(statusCode);
 
@@ -87,5 +90,41 @@ extension ResponseConvert on Response {
       headers: headers.map,
       data: workData,
     );
+  }
+}
+
+/// 为[HttpMethod]扩展方法
+extension HttpMethodExtension on HttpMethod {
+  /// 对应的http方法名称
+  String get name {
+    switch (this) {
+      case HttpMethod.get:
+        return 'GET';
+      case HttpMethod.post:
+        return 'POST';
+      case HttpMethod.put:
+        return 'PUT';
+      case HttpMethod.head:
+        return 'HEAD';
+      case HttpMethod.patch:
+        return 'PATCH';
+      case HttpMethod.delete:
+        return 'DELETE';
+    }
+  }
+}
+
+/// [WorkRequestOptions]扩展
+extension WorkRequestOptionsConvert on WorkRequestOptions {
+  /// 转换到dio[Options]
+  Options toDioOptions() {
+    return Options()
+      ..method = method.name
+      ..headers = headers
+      ..contentType = contentType
+      ..receiveTimeout = readTimeout
+      ..sendTimeout = sendTimeout
+      ..responseType = responseType
+      ..listFormat = listFormat;
   }
 }

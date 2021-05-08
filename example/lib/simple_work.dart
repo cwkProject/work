@@ -57,7 +57,7 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   SimpleWorkData<D> onCreateWorkData() => SimpleWorkData<D>();
 
   @override
-  FutureOr<D?> onRequestSuccess(SimpleWorkData<D> data) {
+  FutureOr<D?> onRequestSuccessful(SimpleWorkData<D> data) {
     if (data.response?.data?[result] == null) {
       return onDefaultResult(data);
     } else {
@@ -79,7 +79,7 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   }
 
   @override
-  String? onRequestSuccessMessage(SimpleWorkData<D> data) =>
+  String? onRequestSuccessfulMessage(SimpleWorkData<D> data) =>
       data.response!.data['message'];
 
   @override
@@ -114,7 +114,7 @@ abstract class SimpleDownloadWork extends Work<void, SimpleWorkData<void>> {
   bool onRequestResult(SimpleWorkData<void> data) => true;
 
   @override
-  FutureOr<void> onRequestSuccess(SimpleWorkData<void> data) => null;
+  FutureOr<void> onRequestSuccessful(SimpleWorkData<void> data) => null;
 
   @override
   HttpMethod onHttpMethod() => HttpMethod.download;

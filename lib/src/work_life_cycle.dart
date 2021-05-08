@@ -163,13 +163,13 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// * 下载请求中默认为[HttpResponseType.stream]则[data.response]为[Stream]。
   /// * 如果设置为[HttpResponseType.plain]则[data.response]为字符串。
   @protected
-  FutureOr<D?> onRequestSuccess(T data);
+  FutureOr<D?> onRequestSuccessful(T data);
 
   /// 提取或设置服务返回的成功结果消息
   ///
   /// 在服务请求成功后调用，即[onRequestResult]返回值为true时被调用。
   @protected
-  String? onRequestSuccessMessage(T data) => null;
+  String? onRequestSuccessfulMessage(T data) => null;
 
   /// 提取或设置服务执行失败时的返回结果数据
   ///

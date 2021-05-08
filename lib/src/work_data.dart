@@ -143,3 +143,18 @@ class WorkCanceled extends WorkError {
   @override
   String toString() => 'This work was canceled:$_tag';
 }
+
+/// dio最终请求选项的包装类
+///
+/// 主要用于打印日志
+class _FinalRequestOptions {
+  _FinalRequestOptions(this.requestOptions);
+
+  /// dio的最终请求选项
+  final RequestOptions requestOptions;
+
+  @override
+  String toString() {
+    return '${requestOptions.uri}';
+  }
+}

@@ -63,7 +63,7 @@ class TestWork extends SimpleWork<String> {
       data.response!.data['message'] ?? '操作失败';
 
   @override
-  String onRequestSuccessMessage(data) => data.response!.data['message'] ?? '';
+  String onRequestSuccessfulMessage(data) => data.response!.data['message'] ?? '';
 }
 
 @JsonSerializable()

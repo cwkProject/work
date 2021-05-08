@@ -94,22 +94,10 @@ class WorkRequestOptions {
   /// 在表单提交中自动装配数组使用的序列化格式
   ListFormat? listFormat;
 
-  /// 转换到dio[Options]
-  Options toDioOptions() {
-    return Options()
-      ..method = method.name
-      ..headers = headers
-      ..contentType = contentType
-      ..receiveTimeout = readTimeout
-      ..sendTimeout = sendTimeout
-      ..responseType = responseType
-      ..listFormat = listFormat;
-  }
-
   @override
   String toString() => '''request 
-$method
-url: ${(workConfigs[configKey] ?? workConfig).dio.options.baseUrl}$url
+method: $method
+url: $url
 headers: $headers
 params: $params''';
 }
@@ -121,7 +109,6 @@ class HttpResponse {
     this.data,
     this.headers,
     this.statusCode = 0,
-
   });
 
   /// 响应数据
@@ -152,8 +139,8 @@ class HttpResponse {
 
   @override
   String toString() => '''response 
-success: $success; code: $statusCode;
-headers: $_headersToString;
+success: $success; code: $statusCode
+headers: $_headersToString
 body: $_bodyToString''';
 }
 
@@ -236,27 +223,6 @@ enum HttpMethod {
 
   /// patch请求
   patch,
-}
-
-/// 为[HttpMethod]扩展方法
-extension HttpMethodExtension on HttpMethod {
-  /// 对应的http方法名称
-  String get name {
-    switch (this) {
-      case HttpMethod.get:
-        return 'GET';
-      case HttpMethod.post:
-        return 'POST';
-      case HttpMethod.put:
-        return 'PUT';
-      case HttpMethod.head:
-        return 'HEAD';
-      case HttpMethod.patch:
-        return 'PATCH';
-      case HttpMethod.delete:
-        return 'DELETE';
-    }
-  }
 }
 
 /// Work的异常类型

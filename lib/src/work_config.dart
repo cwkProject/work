@@ -2,7 +2,7 @@
 
 import 'package:dio/dio.dart';
 
-import '_work_request.dart' as com;
+import '_work_request.dart' as request;
 import '_print.dart';
 import 'work_model.dart' show WorkRequest, WorkLogger;
 
@@ -46,7 +46,7 @@ final workConfigs = <String, WorkConfig>{};
 class WorkConfig {
   WorkConfig({
     required this.dio,
-    this.workRequest = com.workRequest,
+    this.workRequest = request.workRequest,
   });
 
   /// 全局使用的默认网络访问器实例
