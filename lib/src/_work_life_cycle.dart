@@ -27,7 +27,7 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   ///
   /// * 用于检测任务启动所需的参数是否合法，需要子类重写检测规则。
   /// * 检测成功任务才会被正常执行，如果检测失败则[onParamsError]会被调用，
-  /// 且后续网络请求任务不再执行，任务任然可以正常返回并执行生命周期[onFailed]，[onFinish]。
+  /// 且后续网络请求任务不再执行，任务任然可以正常返回并执行生命周期[onFailed]，[onFinished]。
   /// * 参数合法返回true，非法返回false。
   @protected
   FutureOr<bool> onCheckParams() => true;
@@ -35,7 +35,7 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 参数检测不合法时调用
   ///
   /// * [onCheckParams]返回false时被调用，且后续网络请求任务不再执行，
-  /// 但是任务任然可以正常返回并执行生命周期[onFailed]，[onFinish]。
+  /// 但是任务任然可以正常返回并执行生命周期[onFailed]，[onFinished]。
   /// * 返回错误消息内容，将会设置给[WorkData.message]
   @protected
   String? onParamsError() => null;
@@ -46,7 +46,7 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 如果要覆盖全局实现，请覆盖[workRequest]
   /// 如果仅覆盖本任务请重写此方法
   @protected
-  WorkRequest onWorkRequest(HttpOptions options) =>
+  WorkRequest onWorkRequest(WorkRequestOptions options) =>
       (workConfigs[options.configKey] ?? workConfig).workRequest;
 
   /// 网络请求方法
@@ -86,7 +86,7 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// [onHeaders]中创建的请求头，
   /// 以上属性都可以在这里被覆盖可以被覆盖。
   @protected
-  FutureOr<void> onConfigOptions(HttpOptions options) {}
+  FutureOr<void> onConfigOptions(WorkRequestOptions options) {}
 
   /// 填充请求所需的前置参数
   ///
@@ -117,13 +117,13 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   ///
   /// 此处可以用于做数据统计，特殊变量创建等，如果调用[cancel]则会拦截接下来的网络请求
   @protected
-  FutureOr<void> onWillRequest(T data) {}
+  FutureOr<D?> onStarted() => null;
 
-  /// 服务器响应数据解析成功后调用
+  /// 从本地缓存加载数据时的结果消息
   ///
-  /// 即在[_onParse]返回true时调用
+  /// 在[onStarted]返回非空数据拦截请求时，设置给[WorkData.message]的值
   @protected
-  FutureOr<void> onParseSuccess(T data) {}
+  String? onFromCacheMessage() => null;
 
   /// 网络请求成功，服务器响应数据解析失败后调用
   ///
@@ -147,7 +147,7 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 提取服务执行结果
   ///
   /// * http响应成功，从接口响应的数据中提取本次业务请求真正的成功或失败结果。
-  /// * 通常[data.response]类型是[onConfigOptions]中设置的[HttpOptions.responseType]决定的。
+  /// * 通常[data.response]类型是[onConfigOptions]中设置的[WorkRequestOptions.responseType]决定的。
   /// * 在一般请求中默认为[HttpResponseType.json]则[data.response]为[Map]类型的json数据。
   /// * 下载请求中默认为[HttpResponseType.stream]则[data.response]为[Stream]。
   /// * 如果设置为[HttpResponseType.plain]则[data.response]为字符串。
@@ -158,7 +158,7 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   ///
   /// * 在服务请求成功后调用，即[onRequestResult]返回值为true时被调用，
   /// 用于生成请求成功后的任务返回真正结果数据对象[D]。
-  /// * 通常[data.response]类型是[onConfigOptions]中设置的[HttpOptions.responseType]决定的。
+  /// * 通常[data.response]类型是[onConfigOptions]中设置的[WorkRequestOptions.responseType]决定的。
   /// * 在一般请求中默认为[HttpResponseType.json]则[data.response]为[Map]类型的json数据。
   /// * 下载请求中默认为[HttpResponseType.stream]则[data.response]为[Stream]。
   /// * 如果设置为[HttpResponseType.plain]则[data.response]为字符串。
@@ -186,14 +186,14 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 本次任务执行成功后执行
   ///
   /// 即设置请求结果和返回数据之后，并且在回调接口之前执行此函数，
-  /// 该方法在[onFinish]之前被调用
+  /// 该方法在[onFinished]之前被调用
   @protected
-  FutureOr<void> onSuccess(T data) {}
+  FutureOr<void> onSuccessful(T data) {}
 
   /// 本次任务执行失败后执行
   ///
   /// 即设置请求结果和返回数据之后，并且在回调接口之前执行此函数，
-  /// 该方法在[onFinish]之前被调用
+  /// 该方法在[onFinished]之前被调用
   @protected
   FutureOr<void> onFailed(T data) {}
 
@@ -201,7 +201,7 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   ///
   /// 即设置请求结果和返回数据之后，并且在回调任务发送后才执行此函数
   @protected
-  FutureOr<void> onFinish(T data) {}
+  FutureOr<void> onFinished(T data) {}
 
   /// 任务被取消时调用
   @protected

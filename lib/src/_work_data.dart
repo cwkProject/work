@@ -18,7 +18,7 @@ class WorkData<T> {
   T? _result;
 
   /// 用于网络请求使用的参数
-  HttpOptions? _options;
+  WorkRequestOptions? _options;
 
   /// http响应数据
   ///
@@ -30,6 +30,9 @@ class WorkData<T> {
   /// null表示无异常
   WorkErrorType? _errorType;
 
+  /// 标记本次任务的结果是否是从本地缓存加载
+  bool _fromCache = false;
+
   /// 判断本次服务请求是否成功(用户接口协议约定的请求结果，并非http的请求结果，但是http请求失败时该值总是返回false)
   bool get success => _success;
 
@@ -40,7 +43,7 @@ class WorkData<T> {
   T? get result => _result;
 
   /// 用于网络请求使用的参数
-  HttpOptions? get options => _options;
+  WorkRequestOptions? get options => _options;
 
   /// http响应数据
   ///
@@ -51,6 +54,9 @@ class WorkData<T> {
   ///
   /// null表示无异常
   WorkErrorType? get errorType => _errorType;
+
+  /// 标记本次任务的结果是否是从本地缓存加载
+  bool get fromCache => _fromCache;
 }
 
 /// 任务执行专用[Future]，提供了取消功能
@@ -97,8 +103,7 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
       _completer.future.catchError(onError, test: test);
 
   @override
-  Future<R> then<R>(FutureOr<R> Function(T value) onValue,
-          {Function? onError}) =>
+  Future<R> then<R>(FutureOr<R> Function(T value) onValue, {Function? onError}) =>
       _completer.future.then<R>(onValue, onError: onError);
 
   @override
@@ -106,20 +111,34 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
       _completer.future.timeout(timeLimit, onTimeout: onTimeout);
 
   @override
-  Future<T> whenComplete(FutureOr<void> Function() action) =>
-      _completer.future.whenComplete(action);
+  Future<T> whenComplete(FutureOr<void> Function() action) => _completer.future.whenComplete(action);
 
   @override
-  String toString() =>
-      '$_tag(${_isCanceled ? "canceled" : _completer.isCompleted ? "complete" : "active"})';
+  String toString() => '$_tag(${_isCanceled ? "canceled" : _completer.isCompleted ? "complete" : "active"})';
 }
 
-/// 任务取消异常
-class WorkCanceled implements Exception {
-  WorkCanceled._(this._tag);
+/// 任务的异常类型
+class WorkError implements Exception {
+  WorkError._(this._tag, this.type, [this.message]);
 
   /// 任务标识
   final String _tag;
+
+  /// 异常类型
+  final WorkErrorType type;
+
+  /// 错误信息
+  final String? message;
+
+  @override
+  String toString() {
+    return 'WorkError $_tag - $type :$message';
+  }
+}
+
+/// 任务取消异常
+class WorkCanceled extends WorkError {
+  WorkCanceled._(String tag) : super._(tag, WorkErrorType.cancel);
 
   @override
   String toString() => 'This work was canceled:$_tag';

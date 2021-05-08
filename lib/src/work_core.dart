@@ -1,15 +1,19 @@
 // Created by 超悟空 on 2018/9/20.
 
 import 'dart:async';
+import 'dart:developer';
 
+import 'package:dio/dio.dart';
 import 'package:meta/meta.dart';
 
 import '_print.dart';
 import 'work_model.dart';
-import 'work_config.dart' show workConfigs, workConfig;
+import 'work_config.dart';
 import 'package:pedantic/pedantic.dart';
+import '_work_request.dart';
 
 part '_work_life_cycle.dart';
+
 part '_work_data.dart';
 
 /// 任务流程的基本模型
@@ -60,62 +64,57 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
     OnProgress? onSendProgress,
     OnProgress? onReceiveProgress,
   }) async {
-    assert(retry >= 0);
-
     log(_tag, 'work start');
 
-    // 创建数据模型
     final data = onCreateWorkData();
 
-    // 是否继续执行
-    var next = true;
+    try {
+      unawaited(future.catchError((e) {
+        data.options?.cancelToken.cancel();
+        throw e;
+      }));
 
-    if (!future._isCanceled) {
-      // 执行前导任务
-      next = await _onStartWork(data);
-    }
+      await _onStartWork(data);
 
-    if (!future._isCanceled && next) {
-      // 构建http请求选项
-      data._options = await _onCreateOptions(
-        retry,
-        onSendProgress,
-        onReceiveProgress,
-      );
-    }
+      if (data.result == null) {
+        data._options = await _onCreateOptions(onSendProgress, onReceiveProgress);
+        await _onDoWork(retry, data);
 
-    if (!future._isCanceled && next) {
-      // 执行核心任务
-      await _onDoWork(future, data);
-    }
+        log(_tag, 'onSuccessful');
+        final successful = onSuccessful(data);
+        if (successful is Future<void>) {
+          await successful;
+        }
+      }
+    } catch (e) {
+      data._success = false;
+      if (e is WorkError) {
+        data
+          .._errorType = e.type
+          .._message = e.message;
+      } else {
+        data._errorType = WorkErrorType.other;
+      }
 
-    if (!future._isCanceled) {
-      // 执行后继任务
-      await _onStopWork(data);
-    }
-
-    if (future._isCanceled) {
-      // 任务被取消
-      log(_tag, 'onCanceled');
-      try {
+      if (data.errorType == WorkErrorType.cancel) {
+        log(_tag, 'onCanceled');
         final canceled = onCanceled(data);
         if (canceled is Future<void>) {
           await canceled;
         }
-        // ignore: empty_catches
-      } catch (e) {}
-    }
-
-    if (!future._isCanceled) {
-      // 最后执行
-      log(_tag, 'onFinish');
-      try {
-        final finish = onFinish(data);
-        if (finish is Future<void>) {
-          await finish;
+      } else {
+        log(_tag, 'onFailed');
+        final failed = onFailed(data);
+        if (failed is Future<void>) {
+          await failed;
         }
-        // ignore: empty_catches
-      } catch (e) {}
+      }
+    } finally {
+      log(_tag, 'onFinished');
+      final finished = onFinished(data);
+      if (finished is Future<void>) {
+        await finished;
+      }
     }
 
     log(_tag, 'work end');
@@ -124,28 +123,29 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
   }
 
   /// 任务启动前置方法
-  ///
-  /// [data]为任务将要返回的数据模型，返回true表示继续执行
-  Future<bool> _onStartWork(T data) async {
-    // 校验参数
+  Future<void> _onStartWork(T data) async {
     final check = onCheckParams();
     final checkResult = (check is Future<bool>) ? await check : check;
-    if (checkResult) {
-      return true;
+    if (!checkResult) {
+      log(_tag, 'onParamsError');
+      throw WorkError._(_tag, WorkErrorType.params, onParamsError());
     }
 
-    // 数据异常
-    log(_tag, 'onParamsError');
-    data._message = onParamsError();
-    return false;
+    log(_tag, 'onStarted');
+    final willRequest = onStarted();
+    if (willRequest is Future<D?>) {
+      data._result = await willRequest;
+    } else {
+      data._result = willRequest;
+    }
+
+    if (data._result != null) {
+      data._message = onFromCacheMessage();
+    }
   }
 
   /// 构建请求选项参数
-  Future<HttpOptions> _onCreateOptions(
-    int retry,
-    OnProgress? onSendProgress,
-    OnProgress? onReceiveProgress,
-  ) async {
+  Future<WorkRequestOptions> _onCreateOptions(OnProgress? onSendProgress, OnProgress? onReceiveProgress) async {
     Map<String, dynamic>? data;
     Map<String, dynamic>? params;
 
@@ -169,8 +169,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
 
     final postFillParams = onPostFillParams(data);
 
-    final options = HttpOptions()
-      ..retry = retry
+    final options = WorkRequestOptions()
       ..onSendProgress = onSendProgress
       ..onReceiveProgress = onReceiveProgress
       ..method = onHttpMethod()
@@ -203,65 +202,76 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
   /// 核心任务执行
   ///
   /// 此处为真正启动http请求的方法
-  Future<void> _onDoWork(WorkFuture<D, T> future, T data) async {
-    log(_tag, 'onWillRequest');
-    final willRequest = onWillRequest(data);
-    if (willRequest is Future<void>) {
-      await willRequest;
-    }
-
-    if (future._isCanceled) {
-      return;
-    }
-
-    unawaited(future.catchError(
-      (_) => data.options?.cancelToken.cancel(),
-      test: (error) => error is WorkCanceled,
-    ));
-
-    // 创建网络请求工具
+  Future<void> _onDoWork(int retry, T data) async {
     final request = onWorkRequest(data.options!);
 
-    data._response = await request(_tag, data.options!);
-
-    if (future._isCanceled) {
-      return;
-    }
+    data._response = await _onCall(retry, data, await request(_tag, data.options!));
 
     await _onParseResponse(data);
   }
 
-  /// 解析响应数据
-  Future<void> _onParseResponse(T data) async {
-    if (data.response!.success) {
-      // 解析数据
-      if (await _onParse(data)) {
-        // 解析成功
-        log(_tag, 'onParseSuccess');
-        final parseSuccess = onParseSuccess(data);
-        if (parseSuccess is Future<void>) {
-          await parseSuccess;
-        }
-      } else {
-        // 解析失败
-        data._success = false;
-        data.response!.errorType = WorkErrorType.parse;
-        log(_tag, 'onParseFailed');
-        data._message = onParseFailed(data);
-      }
-    } else if (data.response!.errorType == WorkErrorType.response) {
-      // 网络请求失败
-      log(_tag, 'onNetworkRequestFailed');
-      data._message = onNetworkRequestFailed(data);
-    } else {
-      // 网络连接失败
-      log(_tag, 'onNetworkError');
-      data._message = onNetworkError(data);
+  /// 执行网络请求
+  Future<HttpResponse> _onCall(int retry, T data, HttpCall call) async {
+    if (retry < 0) {
+      retry = 0;
     }
+
+    HttpResponse httpResponse;
+    var i = 0;
+
+    do {
+      if (i > 0) {
+        log(_tag, 'retry $i');
+      }
+
+      try {
+        final startTime = Timeline.now;
+        final response = await call();
+        httpResponse = response.toHttpResponse();
+        log(_tag, 'request use ${Timeline.now - startTime}μs');
+        break;
+      } on DioError catch (e) {
+        log(_tag, 'http error', e.type);
+
+        if (e.type == DioErrorType.cancel) {
+          throw WorkCanceled._(_tag);
+        }
+
+        if (i < retry) {
+          i++;
+          continue;
+        }
+
+        final errorType = e.type.toWorkErrorType();
+        data
+          .._response = e.response?.toHttpResponse()
+          .._errorType = errorType;
+
+        if (e.type == DioErrorType.response) {
+          // 网络请求失败
+          log(_tag, 'onNetworkRequestFailed');
+          throw WorkError._(_tag, errorType, onNetworkRequestFailed(data));
+        } else {
+          // 网络连接失败
+          log(_tag, 'onNetworkError');
+          throw WorkError._(_tag, errorType, onNetworkError(data));
+        }
+      } catch (e) {
+        if (e is WorkError) {
+          rethrow;
+        }
+
+        log(_tag, 'http other error', e);
+        log(_tag, 'onParamsError');
+        throw WorkError._(_tag, WorkErrorType.params, onParamsError());
+      }
+    } while (true);
+
+    return httpResponse;
   }
 
-  /// 解析响应体，返回解析结果
-  Future<bool> _onParse(T data) async {
+  /// 解析响应数据
+  Future<void> _onParseResponse(T data) async {
     try {
       // 提取服务执行结果
       log(_tag, 'onRequestResult');
@@ -292,34 +302,13 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
 
         // 提取服务返回的消息
         log(_tag, 'onRequestFailedMessage');
-        data._message = onRequestFailedMessage(data);
-        data.response!.errorType = WorkErrorType.task;
+        throw WorkError._(_tag, WorkErrorType.task, onRequestFailedMessage(data));
       }
-
-      return true;
     } catch (e) {
-      return false;
+      // 解析失败
+      data._success = false;
+      log(_tag, 'onParseFailed');
+      throw WorkError._(_tag, WorkErrorType.parse, onParseFailed(data));
     }
-  }
-
-  /// 任务完成后置方法
-  Future<void> _onStopWork(T data) async {
-    try {
-      // 不同结果的后继执行
-      if (data.success) {
-        log(_tag, 'onSuccess');
-        final success = onSuccess(data);
-        if (success is Future<void>) {
-          await success;
-        }
-      } else {
-        log(_tag, 'onFailed message:${data.message}');
-        final failed = onFailed(data);
-        if (failed is Future<void>) {
-          await failed;
-        }
-      }
-      // ignore: empty_catches
-    } catch (e) {}
   }
 }

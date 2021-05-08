@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:mime/mime.dart';
 import 'package:path/path.dart';
 
@@ -10,11 +11,17 @@ import 'work_config.dart';
 /// 进度监听器
 typedef OnProgress = void Function(int current, int total);
 
-/// 执行网络请求方法
+/// Http执行器，每次调用都应该发起独立的新http请求并返回dio[Response]
 ///
+/// 由[WorkRequest]生成
+/// 请求中的异常请正常抛出
+typedef HttpCall = Future<Response> Function();
+
+/// 网络请求生成器
+///
+/// 用于装配请求参数并生成最终的请求方法[HttpCall]
 /// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回响应数据
-typedef WorkRequest = Future<HttpResponse> Function(
-    String tag, HttpOptions options);
+typedef WorkRequest = Future<HttpCall> Function(String tag, WorkRequestOptions options);
 
 /// 输出日志函数
 ///
@@ -23,15 +30,14 @@ typedef WorkLogger = void Function(String tag, String? message, [Object? data]);
 
 /// 多分块提交格式
 ///
-/// 如果默认的post使用'multipart/form-data'方式提交，
-/// 则需要将[Dio.options]设为此值，
+/// 上传文件时需要使用此格式，
 /// 框架负责将传入的map数据自动装配成FormData格式
 const multipartFormData = 'multipart/form-data';
 
 /// 请求配置信息
-class HttpOptions {
+class WorkRequestOptions {
   /// 用于取消本次请求的工具，由框架管理，无法被覆盖
-  final cancelToken = HttpCancelToken();
+  final cancelToken = CancelToken();
 
   /// 完整的请求地址（包含http(s)://），或者是相对地址（需调用过[workConfig]设置全局dio根地址）
   late String url;
@@ -39,12 +45,7 @@ class HttpOptions {
   /// Http请求方法
   HttpMethod method = HttpMethod.get;
 
-  /// 请求重试次数
-  ///
-  /// 默认0表示不重试，实际执行1次请求，如果设置为1则至少执行一次请求，最多执行两次请求，以此类推
-  int retry = 0;
-
-  /// 发送/上传进度监听器，在[HttpMethod.get]和[HttpMethod.download]中无效
+  /// 发送/上传进度监听器，在[HttpMethod.get]和[HttpMethod.head]中无效
   OnProgress? onSendProgress;
 
   /// 接收/下载进度监听器
@@ -78,17 +79,32 @@ class HttpOptions {
 
   /// [responseType] 表示期望以哪种格式(方式)接受响应数据
   ///
-  /// 默认值是[HttpResponseType.json]
-  HttpResponseType? responseType;
+  /// 默认值在[WorkConfig.dio]中设置，dio默认[ResponseType.json]
+  ResponseType? responseType;
 
-  /// 下载文件的存放路径，仅[HttpMethod.download]中有效
+  /// 下载文件的存放路径
   String? downloadPath;
 
   /// 用于指定使用的网络全局网络访问器的key
   ///
   /// 返回null或key不存在则表示使用默认访问器
-  /// 关联性请查看[work_config.dart]
+  /// 关联性请查看[workConfigs]
   String? configKey;
+
+  /// 在表单提交中自动装配数组使用的序列化格式
+  ListFormat? listFormat;
+
+  /// 转换到dio[Options]
+  Options toDioOptions() {
+    return Options()
+      ..method = method.name
+      ..headers = headers
+      ..contentType = contentType
+      ..receiveTimeout = readTimeout
+      ..sendTimeout = sendTimeout
+      ..responseType = responseType
+      ..listFormat = listFormat;
+  }
 
   @override
   String toString() => '''request 
@@ -105,27 +121,22 @@ class HttpResponse {
     this.data,
     this.headers,
     this.statusCode = 0,
-    this.errorType,
+
   });
 
   /// 响应数据
   ///
   /// 数据类型由[HttpResponseType]决定
-  dynamic data;
+  final dynamic data;
 
   /// 响应头信息
-  Map<String, List<String>>? headers;
+  final Map<String, List<String>>? headers;
 
   /// 响应状态码
-  int statusCode;
+  final int statusCode;
 
   /// 请求成功失败标志
-  bool success;
-
-  /// 异常类型
-  ///
-  /// null表示无异常
-  WorkErrorType? errorType;
+  final bool success;
 
   /// 将头信息转换成文本输出
   String get _headersToString {
@@ -137,8 +148,7 @@ class HttpResponse {
   }
 
   /// 将[body]转换为显示字符串
-  dynamic get _bodyToString =>
-      data is List<int> ? 'bytes ${data.length}' : data;
+  dynamic get _bodyToString => data is List<int> ? 'bytes ${data.length}' : data;
 
   @override
   String toString() => '''response 
@@ -147,47 +157,23 @@ headers: $_headersToString;
 body: $_bodyToString''';
 }
 
-/// 取消Http的请求工具
-class HttpCancelToken {
-  /// 用于发射取消请求
-  final _completer = Completer();
-
-  /// 用于接收取消请求事件
-  Future<dynamic> get whenCancel => _completer.future;
-
-  /// 用于特定取消实现关联对象使用
-  dynamic data;
-
-  /// 取消请求
-  void cancel() {
-    _completer.complete(data);
-  }
-}
-
 /// 描述要上传的文件信息
 class UploadFileInfo {
-  UploadFileInfo._raw(
-      {this.stream, this.length, this.filePath, this.fileName, this.mimeType});
+  UploadFileInfo._raw({this.stream, this.length, this.filePath, this.fileName, this.mimeType});
 
   /// 使用[filePath]创建上传文件
   ///
   /// 仅native端支持
-  factory UploadFileInfo(String filePath,
-      {String? fileName, String? mimeType}) {
+  factory UploadFileInfo(String filePath, {String? fileName, String? mimeType}) {
     fileName ??= basename(filePath);
 
     mimeType ??= lookupMimeType(fileName);
 
-    return UploadFileInfo._raw(
-        stream: null,
-        filePath: filePath,
-        fileName: fileName,
-        mimeType: mimeType);
+    return UploadFileInfo._raw(stream: null, filePath: filePath, fileName: fileName, mimeType: mimeType);
   }
 
   /// 使用文件的字节流[bytes]创建上传文件
-  factory UploadFileInfo.bytes(List<int> bytes,
-      {String? fileName, String? mimeType}) {
+  factory UploadFileInfo.bytes(List<int> bytes, {String? fileName, String? mimeType}) {
     return UploadFileInfo._raw(
         stream: Stream.fromIterable([bytes]),
         length: bytes.length,
@@ -197,14 +183,8 @@ class UploadFileInfo {
   }
 
   /// 使用文件的字节流[stream]创建上传文件
-  factory UploadFileInfo.stream(Stream<List<int>> stream, int length,
-      {String? fileName, String? mimeType}) {
-    return UploadFileInfo._raw(
-        stream: stream,
-        length: length,
-        filePath: null,
-        fileName: fileName,
-        mimeType: mimeType);
+  factory UploadFileInfo.stream(Stream<List<int>> stream, int length, {String? fileName, String? mimeType}) {
+    return UploadFileInfo._raw(stream: stream, length: length, filePath: null, fileName: fileName, mimeType: mimeType);
   }
 
   /// 文件字节流
@@ -228,8 +208,7 @@ class UploadFileInfo {
   final String? mimeType;
 
   @override
-  String toString() =>
-      "UploadFileInfo:'$filePath' fileName:$fileName mimeType:$mimeType";
+  String toString() => "UploadFileInfo:'$filePath' fileName:$fileName mimeType:$mimeType";
 }
 
 /// 用于[json_annotation]库序列化标记需要上传的文件类型参数转换
@@ -237,21 +216,6 @@ class UploadFileInfo {
 /// 支持[File]和[UploadFileInfo]类型标记
 /// 通常标记为 @JsonKey(toJson: workFileToJsonConvert)
 dynamic workFileToJsonConvert(dynamic file) => file;
-
-/// http响应的原始数据格式
-enum HttpResponseType {
-  /// json类型
-  json,
-
-  /// [Stream<Uint8List>]类型数据
-  stream,
-
-  /// UTF8编码字符串
-  plain,
-
-  /// 原始子节数组[List<int>]
-  bytes,
-}
 
 /// http请求类型
 enum HttpMethod {
@@ -272,14 +236,27 @@ enum HttpMethod {
 
   /// patch请求
   patch,
+}
 
-  /// 上传
-  ///
-  /// （post 'multipart/form-data'包装），参数中的文件需要用[File](不支持web)或[UploadFileInfo]类型包装，支持文件列表
-  upload,
-
-  /// 下载（get包装）
-  download,
+/// 为[HttpMethod]扩展方法
+extension HttpMethodExtension on HttpMethod {
+  /// 对应的http方法名称
+  String get name {
+    switch (this) {
+      case HttpMethod.get:
+        return 'GET';
+      case HttpMethod.post:
+        return 'POST';
+      case HttpMethod.put:
+        return 'PUT';
+      case HttpMethod.head:
+        return 'HEAD';
+      case HttpMethod.patch:
+        return 'PATCH';
+      case HttpMethod.delete:
+        return 'DELETE';
+    }
+  }
 }
 
 /// Work的异常类型
