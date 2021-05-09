@@ -12,9 +12,8 @@ import 'work_config.dart';
 import 'package:pedantic/pedantic.dart';
 import '_work_request.dart';
 
-part 'work_life_cycle.dart';
-
 part 'work_data.dart';
+part 'work_life_cycle.dart';
 
 /// 任务流程的基本模型
 ///
@@ -31,12 +30,6 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
     return _logTag = '$runtimeType@${hashCode.toRadixString(16)}';
   }
 
-  /// 启动任务
-  ///
-  /// 返回包含执行结果[T]的[WorkFuture]。
-  /// * [retry]为请求失败重试次数，0表示不重试，实际请求1次，1表示重试1次，实际最多请求两次，以此类推
-  /// * [onSendProgress]为数据上传/发送进度监听器，[onReceiveProgress]为数据接收/下载进度监听器，
-  /// * 多次调用会启动多次请求
   @override
   WorkFuture<D, T> start({
     int retry = 0,
@@ -76,7 +69,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
 
       await _onStartWork(data);
 
-      if (data.result == null) {
+      if (!data.fromCache) {
         data._options = await _onCreateOptions(onSendProgress, onReceiveProgress);
         await _onDoWork(retry, data);
 
@@ -140,6 +133,8 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
     }
 
     if (data._result != null) {
+      data._success = true;
+      data._fromCache = true;
       data._message = onFromCacheMessage();
     }
   }
@@ -175,6 +170,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
       ..method = onHttpMethod()
       ..configKey = onConfigKey()
       ..contentType = onContentType()
+      ..responseType = onResponseType()
       ..url = onUrl();
 
     if (postFillParams is Future<dynamic>) {
@@ -313,7 +309,6 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
       }
     } catch (e) {
       // 解析失败
-      data._success = false;
       log(_tag, 'onParseFailed');
       throw WorkError._(_tag, WorkErrorType.parse, onParseFailed(data));
     }

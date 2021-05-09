@@ -5,10 +5,9 @@ part of 'work_core.dart';
 /// [Work]返回的数据包装类
 ///
 /// 包含响应的全部数据，[T]类型的业务数据实例，[success]表示成功失败，
-/// [message]服务响应的消息，http响应码[code]，请求传入的参数[params],
-/// 服务正真有用的数据对象[result]。
+/// [message]服务响应的消息，http响应[response]，任务正真有用的数据对象[result]。
 class WorkData<T> {
-  /// 本次服务成功失败标志
+  /// 本次任务成功失败标志
   bool _success = false;
 
   /// 服务响应消息
@@ -33,7 +32,12 @@ class WorkData<T> {
   /// 标记本次任务的结果是否是从本地缓存加载
   bool _fromCache = false;
 
-  /// 判断本次服务请求是否成功(用户接口协议约定的请求结果，并非http的请求结果，但是http请求失败时该值总是返回false)
+  /// 本次任务请求是否成功
+  ///
+  ///
+  /// 用户接口协议约定的请求结果，
+  /// 即[Work.onRequestResult]返回的结果，
+  /// 并非http的请求结果，但是http请求失败时该值总是返回false
   bool get success => _success;
 
   /// 获取本次请求返回的结果消息(用户接口协议中约定的消息或者根据规则生成的本地信息，并非http响应消息）
@@ -42,12 +46,12 @@ class WorkData<T> {
   /// 获取处理完成的最终结果数据(用户接口协议中定义的有效数据转化成的本地类)
   T? get result => _result;
 
-  /// 用于网络请求使用的参数
+  /// 本次任务请求的全部参数
+  ///
+  /// 如果[fromCache]为true，则此值为空
   WorkRequestOptions? get options => _options;
 
   /// http响应数据
-  ///
-  /// 在[Work._onParseResponse]生命周期阶段开始出现
   HttpResponse? get response => _response;
 
   /// 异常类型
@@ -56,6 +60,8 @@ class WorkData<T> {
   WorkErrorType? get errorType => _errorType;
 
   /// 标记本次任务的结果是否是从本地缓存加载
+  ///
+  /// 如果在[Work.onStarted]中提前返回了[result]，则此属性返回true
   bool get fromCache => _fromCache;
 }
 

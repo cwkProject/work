@@ -78,27 +78,29 @@ class WorkRequestOptions {
   /// 发送超时
   ///
   /// 传出流上前后两次发送数据的间隔，单位毫秒，
-  /// 默认值为[WorkConfig.dio]中的设置，
-  /// 可在[Work.onConfigOptions]中覆盖此属性。
+  /// 可在[Work.onConfigOptions]中覆盖此属性，
+  /// 默认值为[WorkConfig.dio]中的设置。
   int? sendTimeout;
 
   /// 读取超时
   ///
   /// 响应流上前后两次接受到数据的间隔，单位毫秒
-  /// 默认值为[WorkConfig.dio]中的设置，
-  /// 可在[Work.onConfigOptions]中覆盖此属性。
+  /// 可在[Work.onConfigOptions]中覆盖此属性，
+  /// 默认值为[WorkConfig.dio]中的设置。
   int? readTimeout;
 
   /// 请求的Content-Type
   ///
+  /// 如果需要上传文件或表单提交，请将该值设置为[multipartFormData]，
+  /// 框架会自动进行表单装配，参考[params]的描述，
+  /// 可以在[Work.onContentType]中覆盖此属性，
   /// 默认值为[WorkConfig.dio]中的设置，框架默认'application/x-www-form-urlencoded'
-  /// 如果需要上传文件或表单提交，请将该值设置为[multipartFormData]
-  /// 框架会自动进行表单装配，参考[params]的描述
   String? contentType;
 
-  /// [responseType] 表示期望以哪种格式(方式)接受响应数据
+  /// 表示期望以哪种格式(方式)接受响应数据
   ///
-  /// 默认值在[WorkConfig.dio]中设置，dio默认[ResponseType.json]
+  /// 可以在[Work.onResponseType]中覆盖此属性，
+  /// 默认值在[WorkConfig.dio]中设置，dio默认[ResponseType.json]。
   ResponseType? responseType;
 
   /// 下载文件的本地存放路径
