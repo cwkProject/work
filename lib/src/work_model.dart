@@ -9,18 +9,20 @@ import 'package:path/path.dart';
 import 'work_config.dart';
 
 /// 进度监听器
+///
+/// [current]为当前已传输字节，[total]为总传输字节
 typedef OnProgress = void Function(int current, int total);
 
 /// Http执行器，每次调用都应该发起独立的新http请求并返回dio[Response]
 ///
-/// 由[WorkRequest]生成
+/// 由[WorkRequest]生成，最终调用由框架负责
 /// 请求中的异常请正常抛出
 typedef HttpCall = Future<Response> Function();
 
 /// 网络请求生成器
 ///
 /// 用于装配请求参数并生成最终的请求方法[HttpCall]
-/// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回响应数据
+/// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回最终的网络请求执行方法
 typedef WorkRequest = Future<HttpCall> Function(String tag, WorkRequestOptions options);
 
 /// 输出日志函数
@@ -31,12 +33,13 @@ typedef WorkLogger = void Function(String tag, String? message, [Object? data]);
 /// 多分块提交格式
 ///
 /// 上传文件时需要使用此格式，
-/// 框架负责将传入的map数据自动装配成FormData格式
+/// 框架负责将传入的[Map]数据自动装配成[FormData]格式，
+/// 用户也可以将自行装配的[FormData]实例作为参数
 const multipartFormData = 'multipart/form-data';
 
-/// 请求配置信息
+/// 任务请求的全部配置信息
 class WorkRequestOptions {
-  /// 用于取消本次请求的工具，由框架管理，无法被覆盖
+  /// 用于取消本次请求的工具，由框架管理，和使用，用户不应对其进行任何操作
   final cancelToken = CancelToken();
 
   /// 完整的请求地址（包含http(s)://），或者是相对地址（需调用过[workConfig]设置全局dio根地址）
@@ -45,36 +48,52 @@ class WorkRequestOptions {
   /// Http请求方法
   HttpMethod method = HttpMethod.get;
 
-  /// 发送/上传进度监听器，在[HttpMethod.get]和[HttpMethod.head]中无效
+  /// 发送/上传进度监听器，在[HttpMethod.get]和[HttpMethod.head]以及设置了[downloadPath]的下载任务中无效
+  ///
+  /// 在[Work.start]中传入
   OnProgress? onSendProgress;
 
   /// 接收/下载进度监听器
+  ///
+  /// 在[Work.start]中传入
   OnProgress? onReceiveProgress;
 
   /// 自定义/追加的Http请求头
+  ///
+  /// 通常在[Work.onHeaders]中设置
   Map<String, dynamic>? headers;
 
   /// 最终用于发送的请求参数
   ///
-  /// 支持多种格式，需要与[contentType]匹配
-  /// 可以使用自行拼装的dio中的FormData数据
+  /// 通常在[Work.onFillParams]中装配并返回，此时框架会自动序列化参数，
+  /// 支持[HttpMethod.get]和[HttpMethod.head]，
+  /// 或者是带有请求body的方法中使用“application/x-www-form-urlencoded”或"application/json"，
+  /// [multipartFormData]等与[Map]兼容的键值对或表单格式。
+  ///
+  /// 此外可以在[Work.onPostFillParams]中覆盖参数，
+  /// 支持多种格式，通常有[Map]，[String]，[Stream]等，需要与[contentType]匹配，
+  /// 同样可以使用自行拼装的[FormData]数据
   dynamic params;
 
-  ///  发送超时
+  /// 发送超时
   ///
-  ///  传出流上前后两次发送数据的间隔，单位毫秒
+  /// 传出流上前后两次发送数据的间隔，单位毫秒，
+  /// 默认值为[WorkConfig.dio]中的设置，
+  /// 可在[Work.onConfigOptions]中覆盖此属性。
   int? sendTimeout;
 
-  ///  读取超时
+  /// 读取超时
   ///
-  ///  响应流上前后两次接受到数据的间隔，单位毫秒
+  /// 响应流上前后两次接受到数据的间隔，单位毫秒
+  /// 默认值为[WorkConfig.dio]中的设置，
+  /// 可在[Work.onConfigOptions]中覆盖此属性。
   int? readTimeout;
 
   /// 请求的Content-Type
   ///
-  /// 默认值'application/x-www-form-urlencoded'
-  /// 如果需要formData的表单提交格式，请将该值设置为[multipartFormData]
-  /// 框架会自动进行表单装配
+  /// 默认值为[WorkConfig.dio]中的设置，框架默认'application/x-www-form-urlencoded'
+  /// 如果需要上传文件或表单提交，请将该值设置为[multipartFormData]
+  /// 框架会自动进行表单装配，参考[params]的描述
   String? contentType;
 
   /// [responseType] 表示期望以哪种格式(方式)接受响应数据
@@ -82,7 +101,13 @@ class WorkRequestOptions {
   /// 默认值在[WorkConfig.dio]中设置，dio默认[ResponseType.json]
   ResponseType? responseType;
 
-  /// 下载文件的存放路径
+  /// 下载文件的本地存放路径
+  ///
+  /// 下载并保存到文件的快捷方式，web不支持此方式。
+  /// 如果该值不为空，则本任务会被认为是一个下载任务，
+  /// 框架会自动使用[Dio.download]方法执行下载任务。
+  /// 可在[Work.onConfigOptions]中设置此属性，
+  /// 此时[Work.onRequestResult]通常总是返回true
   String? downloadPath;
 
   /// 用于指定使用的网络全局网络访问器的key
@@ -113,7 +138,7 @@ class HttpResponse {
 
   /// 响应数据
   ///
-  /// 数据类型由[HttpResponseType]决定
+  /// 通常数据类型由[ResponseType]决定
   final dynamic data;
 
   /// 响应头信息
@@ -144,7 +169,9 @@ headers: $_headersToString
 body: $_bodyToString''';
 }
 
-/// 描述要上传的文件信息
+/// 上传文件时的包装格式
+///
+/// 用于描述要上传的文件信息
 class UploadFileInfo {
   UploadFileInfo._raw({this.stream, this.length, this.filePath, this.fileName, this.mimeType});
 
@@ -204,30 +231,32 @@ class UploadFileInfo {
 /// 通常标记为 @JsonKey(toJson: workFileToJsonConvert)
 dynamic workFileToJsonConvert(dynamic file) => file;
 
-/// http请求类型
+/// Http请求类型
 enum HttpMethod {
-  /// get请求
+  /// GET请求
   get,
 
-  /// post请求
+  /// POST请求
   post,
 
-  /// put请求
+  /// PUT请求
   put,
 
-  /// delete请求
+  /// DELETE请求
   delete,
 
-  /// head请求
+  /// HEAD请求
   head,
 
-  /// patch请求
+  /// PATCH请求
   patch,
 }
 
 /// Work的异常类型
 enum WorkErrorType {
   /// 任务传入参数错误
+  ///
+  /// 可能是[Work.onCheckParams]未通过，或者是url不合法
   params,
 
   /// 连接超时
@@ -239,16 +268,21 @@ enum WorkErrorType {
   /// 接收超时
   receiveTimeout,
 
-  /// 服务器返回错误，4xx,5xx
+  /// 服务器响应错误，4xx,5xx
   response,
 
   /// 用户取消请求
   cancel,
 
-  /// 业务任务执行错误（应用业务逻辑失败）
+  /// 任务返回错误（应用业务逻辑失败）
+  ///
+  /// Http请求成功，但是[Work.onRequestResult]返回false。
+  /// 通常代表了业务逻辑失败。
   task,
 
   /// 响应数据解析错误
+  ///
+  /// Http请求成功，但是读取响应数据时出错
   parse,
 
   /// 一些其他异常，可能是网络库或其他数据处理异常

@@ -36,15 +36,25 @@ Future<HttpCall> workRequest(String tag, WorkRequestOptions options) async {
       break;
   }
 
-  return () => client.request(
-        options.url,
-        data: data,
-        queryParameters: queryParameters,
-        cancelToken: options.cancelToken,
-        options: dioOptions,
-        onSendProgress: options.onSendProgress,
-        onReceiveProgress: options.onReceiveProgress,
-      );
+  return () => options.downloadPath != null
+      ? client.download(
+          options.url,
+          options.downloadPath,
+          data: data,
+          queryParameters: queryParameters,
+          cancelToken: options.cancelToken,
+          options: dioOptions,
+          onReceiveProgress: options.onReceiveProgress,
+        )
+      : client.request(
+          options.url,
+          data: data,
+          queryParameters: queryParameters,
+          cancelToken: options.cancelToken,
+          options: dioOptions,
+          onSendProgress: options.onSendProgress,
+          onReceiveProgress: options.onReceiveProgress,
+        );
 }
 
 /// dio异常类型扩展
