@@ -31,8 +31,11 @@ Future<HttpCall> workRequest(String tag, WorkRequestOptions options) async {
       }
       break;
     default:
-      final isFormData = (options.contentType ?? client.options.contentType) == multipartFormData;
-      data = isFormData && options.params is Map<String, dynamic> ? await convertToDio(options.params) : options.params;
+      final isFormData = (options.contentType ?? client.options.contentType) ==
+          multipartFormData;
+      data = isFormData && options.params is Map<String, dynamic>
+          ? await convertToDio(options.params)
+          : options.params;
       break;
   }
 
@@ -84,10 +87,15 @@ extension ResponseConvert on Response {
   HttpResponse toHttpResponse() {
     final success = requestOptions.validateStatus(statusCode);
 
-    var workData = requestOptions.responseType == ResponseType.stream ? data?.stream : data;
+    var workData = requestOptions.responseType == ResponseType.stream
+        ? data?.stream
+        : data;
 
     // 尝试转换类型
-    if (success && requestOptions.responseType == ResponseType.json && workData is String && workData.isNotEmpty) {
+    if (success &&
+        requestOptions.responseType == ResponseType.json &&
+        workData is String &&
+        workData.isNotEmpty) {
       try {
         workData = json.decode(workData);
         // ignore: empty_catches
