@@ -116,9 +116,6 @@ abstract class SimpleDownloadWork extends Work<void, SimpleWorkData<void>> {
   @override
   FutureOr<void> onRequestSuccessful(SimpleWorkData<void> data) => null;
 
-  @override
-  HttpMethod onHttpMethod() => HttpMethod.download;
-
   @mustCallSuper
   @override
   FutureOr<void> onConfigOptions(WorkRequestOptions options) {

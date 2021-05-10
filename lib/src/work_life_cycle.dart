@@ -14,7 +14,7 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 以及设置了[WorkRequestOptions.downloadPath]的下载任务中无效，
   /// * [onReceiveProgress]为数据接收/下载进度监听器，
   /// * 多次调用会启动多次请求
-  WorkFuture<D, T> start({
+  WorkFuture<T> start({
     int retry = 0,
     OnProgress? onSendProgress,
     OnProgress? onReceiveProgress,

@@ -66,8 +66,10 @@ class WorkData<T> {
 }
 
 /// 任务执行专用[Future]，提供了取消功能
-class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
-  WorkFuture._(this._tag);
+///
+/// [T]为[WorkData]子类
+class WorkFuture<T> implements Future<T> {
+  WorkFuture._(this._tag, this.onCanceled);
 
   /// 任务标识
   final String _tag;
@@ -75,14 +77,14 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
   /// 真正的完成器
   final _completer = Completer<T>();
 
+  /// 用户执行取消事件
+  final void Function() onCanceled;
+
   /// 是否被取消
   bool _isCanceled = false;
 
   /// 执行完成
   void _complete(T data) {
-    if (_isCanceled) {
-      return;
-    }
     _completer.complete(data);
   }
 
@@ -98,7 +100,7 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
       return;
     }
     _isCanceled = true;
-    _completer.completeError(WorkCanceled._(_tag));
+    onCanceled();
   }
 
   @override
@@ -140,14 +142,6 @@ class WorkError implements Exception {
   String toString() {
     return 'WorkError $_tag - $type :$message';
   }
-}
-
-/// 任务取消异常
-class WorkCanceled extends WorkError {
-  WorkCanceled._(String tag) : super._(tag, WorkErrorType.cancel);
-
-  @override
-  String toString() => 'This work was canceled:$_tag';
 }
 
 /// dio最终请求选项的包装类

@@ -2,8 +2,6 @@
 
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
-
 import 'work_model.dart' show WorkLogger;
 
 /// 每次打印的最大长度
@@ -21,7 +19,7 @@ void logImp(String tag, String? message, [Object? data]) {
   final finalMessage = '$message ${data ?? ''}';
 
   for (final it in _wrap(finalMessage)) {
-    debugPrint('$tag: $it');
+    print('$tag: $it');
   }
 }
 

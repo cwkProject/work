@@ -13,6 +13,7 @@ import 'package:pedantic/pedantic.dart';
 import '_work_request.dart';
 
 part 'work_data.dart';
+
 part 'work_life_cycle.dart';
 
 /// 任务流程的基本模型
@@ -31,15 +32,19 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
   }
 
   @override
-  WorkFuture<D, T> start({
+  WorkFuture<T> start({
     int retry = 0,
     OnProgress? onSendProgress,
     OnProgress? onReceiveProgress,
   }) {
-    final future = WorkFuture<D, T>._(_tag);
+    log(_tag, 'work start');
+
+    final data = onCreateWorkData();
+
+    final future = WorkFuture<T>._(_tag, () => data.options?.cancelToken.cancel());
 
     _onDo(
-      future: future,
+      data: data,
       retry: retry,
       onSendProgress: onSendProgress,
       onReceiveProgress: onReceiveProgress,
@@ -52,21 +57,12 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
   ///
   /// [future]任务完成器
   Future<T> _onDo({
-    required WorkFuture<D, T> future,
+    required T data,
     required int retry,
     OnProgress? onSendProgress,
     OnProgress? onReceiveProgress,
   }) async {
-    log(_tag, 'work start');
-
-    final data = onCreateWorkData();
-
     try {
-      unawaited(future.catchError((e) {
-        data.options?.cancelToken.cancel();
-        throw e;
-      }));
-
       await _onStartWork(data);
 
       if (!data.fromCache) {
@@ -234,7 +230,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
         log(_tag, 'http error', e.type);
 
         if (e.type == DioErrorType.cancel) {
-          throw WorkCanceled._(_tag);
+          throw WorkError._(_tag, WorkErrorType.cancel);
         }
 
         if (i < retry) {
