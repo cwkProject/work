@@ -224,7 +224,7 @@ class UploadFileInfo {
   final String? mimeType;
 
   @override
-  String toString() => "UploadFileInfo:'$filePath' fileName:$fileName mimeType:$mimeType";
+  String toString() => "UploadFileInfo:'${filePath ?? 'stream length:$length'}' fileName:$fileName mimeType:$mimeType";
 }
 
 /// 用于[json_annotation]库序列化标记需要上传的文件类型参数转换

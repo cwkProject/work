@@ -33,7 +33,7 @@ class SimpleWorkData<T> extends WorkData<T> {
 /// 简化的[Work]类
 ///
 /// * [D]为关联的接口结果数据类型。
-/// * 适用于除下载任务以外的请求任务，下载任务请使用[SimpleDownloadWork]
+/// * 适用于除快捷下载任务以外的请求任务，下载任务请使用[SimpleDownloadWork]
 /// * 使用特定的公司接口协议描述。
 ///
 /// ``` http协议
@@ -58,7 +58,7 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
 
   @override
   FutureOr<D?> onRequestSuccessful(SimpleWorkData<D> data) {
-    if (data.response?.data?[result] == null) {
+    if (data.response!.data[result] == null) {
       return onDefaultResult(data);
     } else {
       return onExtractResult(data.response!.data[result], data);
@@ -103,9 +103,10 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   FutureOr<D?> onDefaultResult(SimpleWorkData<D> data) => null;
 }
 
-/// 简化的下载专用[Work]类
+/// 简化的快捷下载专用[Work]类
 ///
-/// * 适用于下载文件任务，其他类型任务请使用[SimpleWork]
+/// * 适用于快捷下载文件任务，其他类型任务请使用[SimpleWork]
+/// * 此模式将使用[Dio.download]方法下载
 abstract class SimpleDownloadWork extends Work<void, SimpleWorkData<void>> {
   @override
   SimpleWorkData<void> onCreateWorkData() => SimpleWorkData<void>();

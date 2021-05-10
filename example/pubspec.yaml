@@ -18,6 +18,7 @@ dependencies:
     path: ../
 
 dev_dependencies:
+  test: ^1.17.3
 
   build_runner: ^1.11.5
   json_serializable: ^4.0.2

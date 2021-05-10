@@ -1,104 +1,123 @@
 // Created by 超悟空 on 2021/5/10.
 
-import 'dart:async';
+import 'package:test/test.dart';
+import 'package:work/work.dart';
 
-void main() async {
-  try {
-    final completer = CancelableFuture()
-      ..catchError((e) {
-        print('catchError $e');
-      });
+import 'test_works.dart';
 
-    delayed().then(completer.complete).whenComplete(() {
-      print('whenComplete');
-    }).then((v){
-      print('whenComplete then');
+void main() {
+  group('basic_test', () {
+    setUp(() {
+      workConfig.dio.options.baseUrl = 'http://httpbin.org/';
     });
 
-    await Future.delayed(Duration(milliseconds: 200));
+    test('get', () async {
+      final work = await SimpleGetWork('超悟空', 32).start();
 
-    completer.cancel();
+      if (work.success) {
+        print('work result ${work.result}');
+      } else {
+        print('work error ${work.errorType} message ${work.message}');
+      }
+    });
 
-    await Future.delayed(Duration(seconds: 2)).then((value) => '1');
+    test('post_form', () async {
+      final work = await SimplePostFormWork('超悟空', 32).start();
 
-    print('delayed 1');
-  } catch (e) {
-    print('catch $e');
-  }
+      if (work.success) {
+        print('work result ${work.result}');
+      } else {
+        print('work error ${work.errorType} message ${work.message}');
+      }
+    });
 
-  await Future.delayed(Duration(seconds: 3));
+    test('post_json', () async {
+      final work = await SimplePostJsonWork('超悟空', 32).start();
 
-  print('finish');
-}
+      if (work.success) {
+        print('work result ${work.result}');
+      } else {
+        print('work error ${work.errorType} message ${work.message}');
+      }
+    });
 
-Future<void> delayed() async {
-  print('delayed begin');
-  try {
-    await Future.delayed(Duration(milliseconds: 100));
-    print('delayed 100');
-    await Future.delayed(Duration(milliseconds: 200));
-    print('delayed 200');
-    await Future.delayed(Duration(milliseconds: 300));
-    print('delayed 300');
-  } catch (e) {
-    print('delayed $e');
-  }
+    test('post_json_string', () async {
+      final work = await SimplePostJsonStringWork('超悟空', 32).start();
 
-  print('delayed end');
-}
+      if (work.success) {
+        print('work result ${work.result}');
+      } else {
+        print('work error ${work.errorType} message ${work.message}');
+      }
+    });
 
-/// 任务执行专用[Future]，提供了取消功能
-class CancelableFuture<T> implements Future<T> {
-  /// 真正的完成器
-  final _completer = Completer<T>();
+    test('retry', () async {
+      final work = await SimpleErrorWork().start(retry: 5);
 
-  /// 是否被取消
-  bool _isCanceled = false;
+      if (!work.success) {
+        print('work error ${work.errorType} message ${work.message}');
+      }
+    });
 
-  /// 执行完成
-  void complete(T data) {
-    if (_isCanceled) {
-      return;
-    }
-    _completer.complete(data);
-  }
+    test('download', () async {
+      final work = await SimpleLoadWork().start(onReceiveProgress: (current, total) {
+        print(current * 100 ~/ total);
+      });
 
-  /// 取消正在进行的任务
-  void cancel() {
-    if (_isCanceled) {
-      return;
-    }
-    if (_completer.isCompleted) {
-      return;
-    }
-    _isCanceled = true;
-    _completer.completeError(CancelableCanceled());
-  }
+      if (work.success) {
+        print('work result ${work.result!.length}');
+      } else {
+        print('work error ${work.errorType} message ${work.message}');
+      }
+    });
 
-  @override
-  Stream<T> asStream() => _completer.future.asStream();
+    test('upload', () async {
+      final download = await SimpleLoadWork().start();
 
-  @override
-  Future<T> catchError(Function onError, {bool Function(Object error)? test}) =>
-      _completer.future.catchError(onError, test: test);
+      final work = await SimpleUploadWork(download.result!, name: 'test.webp', mimeType: 'image/webp').start(
+          onSendProgress: (current, total) {
+        print(current * 100 ~/ total);
+      });
 
-  @override
-  Future<R> then<R>(FutureOr<R> Function(T value) onValue, {Function? onError}) =>
-      _completer.future.then<R>(onValue, onError: onError);
+      if (work.success) {
+        print('work result success');
+      } else {
+        print('work error ${work.errorType} message ${work.message}');
+      }
+    });
 
-  @override
-  Future<T> timeout(Duration timeLimit, {FutureOr<T> Function()? onTimeout}) =>
-      _completer.future.timeout(timeLimit, onTimeout: onTimeout);
+    test('cancel', () async {
+      final work = DelayWork('超悟空', 32, 5).start();
 
-  @override
-  Future<T> whenComplete(FutureOr<void> Function() action) => _completer.future.whenComplete(action);
+      work.then((value) {
+        if (value.success) {
+          print('work result ${value.result}');
+        } else {
+          print('work error ${value.errorType} message ${value.message}');
+        }
+      });
 
-  @override
-  String toString() => '(${_isCanceled ? "canceled" : _completer.isCompleted ? "complete" : "active"})';
-}
+      await Future.delayed(Duration(seconds: 1));
 
-/// 任务取消异常
-class CancelableCanceled implements Exception {
-  @override
-  String toString() => 'This work was canceled';
+      work.cancel();
+    });
+
+    test('cache', () async {
+      var work = await CacheableWork(1, '超悟空', 32).start();
+
+      if (work.success) {
+        print('work result ${work.result}');
+      } else {
+        print('work error ${work.errorType} message ${work.message}');
+      }
+
+      work = await CacheableWork(1, '超悟空', 32).start();
+
+      if (work.success) {
+        print('work result ${work.result} cache ${work.fromCache} message ${work.message}');
+      } else {
+        print('work error ${work.errorType} message ${work.message}');
+      }
+    });
+  });
 }

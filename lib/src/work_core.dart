@@ -7,13 +7,13 @@ import 'package:dio/dio.dart';
 import 'package:meta/meta.dart';
 
 import '_print.dart';
-import 'work_model.dart';
-import 'work_config.dart';
-import 'package:pedantic/pedantic.dart';
 import '_work_request.dart';
+import 'work_config.dart';
+import 'work_model.dart';
+
+export 'dart:async';
 
 part 'work_data.dart';
-
 part 'work_life_cycle.dart';
 
 /// 任务流程的基本模型
@@ -131,6 +131,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
     if (data._result != null) {
       data._success = true;
       data._fromCache = true;
+      log(_tag, 'onFromCacheMessage');
       data._message = onFromCacheMessage();
     }
   }
