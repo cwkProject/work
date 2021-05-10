@@ -2,32 +2,108 @@
 
 [![pub package](https://img.shields.io/pub/v/work.svg)](https://pub.dartlang.org/packages/work)
 
-* 封装http业务接口协议，提供有限的扩展功能，隔离http底层实现方法(当前基于dio)，与公司http规范紧密结合，规范团队成员接口编写和使用方式。
+* 封装http业务接口协议，基于[dio](https://pub.dartlang.org/packages/dio) 实现。
+* 提供标准且一致的接口编写与执行流程，与公司http规范紧密结合，规范团队成员接口编写和使用方式。
 * 核心设计理念为封装http接口的请求数据和响应数据的序列化和反序列化，接口调用处不能出现任何解析http数据的代码。
-装配和解析代码应该全部由`Work`类完成，接口调用处使用一致的调用方式，无需关心http的实现方式和接口参数拼装细节，
-* 此设计的缺点是丢弃了一些不常用的http底层实现工具的灵活扩展功能，
-优点是规范团队接口编写方式，统一项目http接口代码风格。
+* 装配和解析代码应该全部由`Work`类完成，接口调用处使用一致的调用方式，无需关心http的实现方式和接口参数拼装细节，
+* 此设计隐藏了一些不常用的[dio](https://pub.dartlang.org/packages/dio) 功能，如需使用需要单独实现装配器
+* 此设计的优点是规范团队接口编写方式，统一项目http接口代码风格。
 
-## 与1.0.0以下版本不兼容
+## 与2.0.0以下版本不兼容
 
 ## Usage
-* [添加 `work` 到 pubspec.yaml 文件](https://flutter.io/platform-plugins/).
-* `import 'package:work/work.dart';`
+
+* [添加`work`到`pubspec.yaml`](https://pub.dartlang.org/packages/work/install).
 
 ## 实现公司http规范基类
 
 模仿`simple_work.dart`中的样板来实现一个`Work`基类，用于关联自己公司的固定接口规范。
 
-`SimpleWork`类为一个样例实现，所使用的公司接口规范如下
+`SimpleWork`类为一个样例实现。
 
-所有接口响应数据格式
-```
+假设公司的所有接口响应数据格式如下：
+
+```协议
 {
   "state":true, // 业务的成功失败标志
   "errorCode":0, // 错误码
   "message":null, // 业务消息字符串，可以是成功时用于显示的信息，也可以是失败时的提示信息
   "result": {}  // 真正响应的有效业务数据，任意类型
 }
+```
+
+首先实现一个带有`errorCode`的`WorkData`子类以匹配上述协议（`WorkData`中已包含另外三个）。
+
+```SimpleWorkData
+
+class SimpleWorkData<T> extends WorkData<T> {
+  /// 协议错误码
+  int _errorCode = 0;
+
+  /// 协议错误码
+  int get errorCode => _errorCode;
+}
+
+```
+
+最后实现一个解析此协议的`Work`基类，可以更具自身需要添加如`onExtractResult`和`onDefaultResult`的扩展生命周期。
+
+```SimpleWork
+
+abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
+  /// 用于获取响应json数据协议中"result"字段
+  static const String result = 'result';
+
+  @override
+  SimpleWorkData<D> onCreateWorkData() => SimpleWorkData<D>();
+
+  @override
+  FutureOr<D?> onRequestSuccessful(SimpleWorkData<D> data) {
+    if (data.response!.data[result] == null) {
+      return onDefaultResult(data);
+    } else {
+      return onExtractResult(data.response!.data[result], data);
+    }
+  }
+
+  @override
+  bool onRequestResult(SimpleWorkData<D> data) => data.response!.data['state'];
+
+  @mustCallSuper
+  @override
+  FutureOr<D?> onRequestFailed(SimpleWorkData<D> data) {
+    if (data.response!.data['errorCode'] != null) {
+      data._errorCode = data.response!.data['errorCode']!;
+    }
+
+    return super.onRequestFailed(data);
+  }
+
+  @override
+  String? onRequestSuccessfulMessage(SimpleWorkData<D> data) =>
+      data.response!.data['message'];
+
+  @override
+  String? onRequestFailedMessage(SimpleWorkData<D> data) =>
+      data.response!.data['message'];
+
+  /// 生成响应成功的结果数据
+  ///
+  /// * [resultData]为协议中的[result]标签下的数据
+  /// * 当请求成功且返回结果中存在[result]标签且不为null时被调用
+  /// * 返回装配后的本地数据对象
+  /// * [data]为将要返回的数据包装类
+  @protected
+  FutureOr<D?> onExtractResult(resultData, SimpleWorkData<D> data);
+
+  /// 生成响应成功的默认结果数据
+  ///
+  /// * 当请求成功且返回结果不存在[result]标签或值为null时被调用，默认实现为null
+  /// * [data]为将要返回的数据包装类
+  @protected
+  FutureOr<D?> onDefaultResult(SimpleWorkData<D> data) => null;
+}
+
 ```
 
 ## 增加接口
@@ -52,9 +128,9 @@ class LoginWork extends SimpleWork<User> {
 
   String get device => Platform.isIOS ? "Ios" : "Android";
   
+  /// 解析响应数据
   @override
   User onExtractResult(resultData,SimpleWorkData<User> data) => User.fromJson(resultData);
-  // 解析响应数据
 
   /// 装配请求参数
   /// 
@@ -62,7 +138,7 @@ class LoginWork extends SimpleWork<User> {
   @override
   Map<String, dynamic> onFillParams() => _$LoginWorkToJson(this);
 
-  // 简单的参数直接拼接
+  // 不使用序列化库，直接拼接
   // @override
   // Map<String, dynamic> onFillParams() => {
   //  'username': username,
@@ -71,12 +147,13 @@ class LoginWork extends SimpleWork<User> {
   // };
   //
 
+  /// 可以是完整地址，也可以是相对地址（需要在[BaseOptions]中设置，关联性请查看[WorkConfig.dio]）
   @override
   String onUrl() => "https://xxx/user/login";
-  // 地址可以是完整地址，支持baseUrl，需在[workConfig]中设置dio属性
 
+  /// 使用post请求
   @override
-  HttpMethod onHttpMethod() => HttpMethod.post; // 使用post请求
+  HttpMethod onHttpMethod() => HttpMethod.post;
 }
 
 ```
@@ -101,10 +178,12 @@ LoginWork(username: 'user1', password: '123456').start().then((data){
 
 ## 支持请求类型
 
-* `HttpMethod`中的类型，`get`、`post`、`put`、`delete`、`head`、`patch`、`upload`、`download`。
-* 其中`upload` 基于`post` 的 `multipart/form-data`实现，参数中的文件需要用`File`或`UploadFileInfo`类型包装，支持文件列表
-* `download`默认使用`get`请求，且由于`download`特殊性，需要使用独立于其他`Work`的实现方式，参考`SimpleDownloadWork`。
+* `HttpMethod`中的类型，`get`、`post`、`put`、`delete`、`head`、`patch`。
+* 上传文件时请实现`Work.onContentType`并设置为`multipart/form-data`，参数中的文件需要用`File`或`UploadFileInfo`类型包装，支持文件列表
+* 下载文件时可以自己处理字节流，需要实现`Work.onResponseType`并指定自己需要的响应格式，也可以参考`SimpleDownloadWork`实现一个快捷下载类，此方式使用`dio.download`下载。
 
 ## 其他Work生命周期函数
 
-`Work`中还有很多生命周期方法，用于做有限的接口扩展和定制，原则是接口数据处理由接口自己(即`Work`)处理。
+* `Work`中还有很多生命周期方法，用于做有限的接口扩展和定制，请参考`work_life_cycle.dart`
+* 原则是接口数据处理由接口自己(即`Work`)处理
+* `Work`设计的流程能满足绝大多数使用场景，如需深度定制Http请求，可以查看`WorkConfig`用于全局配置，`Work.onWorkRequest`用于定制单一任务
