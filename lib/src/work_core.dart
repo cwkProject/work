@@ -35,6 +35,9 @@ class WorkData<T> {
   /// 在[Work._onParseResponse]生命周期阶段开始出现
   Response? _response;
 
+  /// 可以在任务执行周期中携带的额外数据
+  dynamic extra;
+
   /// 判断本次服务请求是否成功(用户接口协议约定的请求结果，并非http的请求结果，但是http请求失败时该值总是返回false)
   bool get success => _success;
 
