@@ -130,7 +130,7 @@ class WorkFuture<T> implements Future<T> {
 
 /// 任务的异常类型
 class WorkError implements Exception {
-  WorkError._(this._tag, this.type, [this.message]);
+  WorkError._(this._tag, this.type, [this.message, this.origin]);
 
   /// 任务标识
   final String _tag;
@@ -141,9 +141,12 @@ class WorkError implements Exception {
   /// 错误信息
   final String? message;
 
+  /// 原始错误信息
+  final dynamic origin;
+
   @override
   String toString() {
-    return 'WorkError $_tag - $type :$message';
+    return 'WorkError $_tag - $type :$message $origin';
   }
 }
 

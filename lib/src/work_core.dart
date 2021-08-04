@@ -79,12 +79,16 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
       }
     } catch (e) {
       data._success = false;
+
+      var error;
       if (e is WorkError) {
         data
           .._errorType = e.type
           .._message = e.message;
+        error = e.origin;
       } else {
         data._errorType = WorkErrorType.other;
+        error = e;
       }
 
       if (data.errorType == WorkErrorType.cancel) {
@@ -94,7 +98,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
           await canceled;
         }
       } else {
-        log(_tag, 'onFailed');
+        log(_tag, 'onFailed', error);
         final failed = onFailed(data);
         if (failed is Future<void>) {
           await failed;
@@ -254,11 +258,11 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
         if (e.type == DioErrorType.response) {
           // 网络请求失败
           log(_tag, 'onNetworkRequestFailed');
-          throw WorkError._(_tag, errorType, onNetworkRequestFailed(data));
+          throw WorkError._(_tag, errorType, onNetworkRequestFailed(data), e);
         } else {
           // 网络连接失败
           log(_tag, 'onNetworkError');
-          throw WorkError._(_tag, errorType, onNetworkError(data));
+          throw WorkError._(_tag, errorType, onNetworkError(data), e);
         }
       } catch (e) {
         if (e is WorkError) {
@@ -267,7 +271,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
 
         log(_tag, 'http other error', e);
         log(_tag, 'onParamsError');
-        throw WorkError._(_tag, WorkErrorType.params, onParamsError());
+        throw WorkError._(_tag, WorkErrorType.params, onParamsError(), e);
       }
     } while (true);
 
@@ -312,7 +316,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
     } catch (e) {
       // 解析失败
       log(_tag, 'onParseFailed');
-      throw WorkError._(_tag, WorkErrorType.parse, onParseFailed(data));
+      throw WorkError._(_tag, WorkErrorType.parse, onParseFailed(data), e);
     }
   }
 }
