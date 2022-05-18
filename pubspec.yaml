@@ -4,7 +4,6 @@ description: Encapsulate http business interface protocol, provide limited exten
 version: 3.1.1
 
 homepage: https://github.com/cwkProject/work
-publish_to: https://pub.dartlang.org
 
 environment:
   sdk: ">=2.12.1 <3.0.0"
