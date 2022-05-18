@@ -14,6 +14,7 @@ import 'work_model.dart';
 export 'dart:async';
 
 part 'work_data.dart';
+
 part 'work_life_cycle.dart';
 
 /// 任务流程的基本模型
@@ -85,7 +86,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
         data
           .._errorType = e.type
           .._message = e.message;
-        error = e.origin;
+        error = e.origin ?? e;
       } else {
         data._errorType = WorkErrorType.other;
         error = e;
@@ -264,11 +265,9 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
           log(_tag, 'onNetworkError');
           throw WorkError._(_tag, errorType, onNetworkError(data), e);
         }
+      } on WorkError catch (_) {
+        rethrow;
       } catch (e) {
-        if (e is WorkError) {
-          rethrow;
-        }
-
         log(_tag, 'http other error', e);
         log(_tag, 'onParamsError');
         throw WorkError._(_tag, WorkErrorType.params, onParamsError(), e);
@@ -313,6 +312,8 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
         throw WorkError._(
             _tag, WorkErrorType.task, onRequestFailedMessage(data));
       }
+    } on WorkError catch (_) {
+      rethrow;
     } catch (e) {
       // 解析失败
       log(_tag, 'onParseFailed');

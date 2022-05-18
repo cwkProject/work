@@ -1,17 +1,17 @@
 name: work
 description: Encapsulate http business interface protocol, provide limited extension functions, isolate the underlying implementation method of http (currently based on dio).
 
-version: 3.1.0
+version: 3.1.1
 
 homepage: https://github.com/cwkProject/work
 publish_to: https://pub.dartlang.org
 
 environment:
-  sdk: ">=2.12.0-0 <3.0.0"
+  sdk: ">=2.12.1 <3.0.0"
 
 dependencies:
   meta: ^1.7.0
-  dio: ^4.0.0
+  dio: ^4.0.6
   mime: ^1.0.0
   http_parser: ^4.0.0
   path: ^1.8.0

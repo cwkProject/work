@@ -14,110 +14,104 @@ void main() {
     test('get', () async {
       final work = await SimpleGetWork('超悟空', 32).start();
 
-      if (work.success) {
-        print('work result ${work.result}');
-      } else {
-        print('work error ${work.errorType} message ${work.message}');
-      }
+      print('work result ${work.result} message ${work.message}');
+
+      assert(work.success);
+      assert(work.errorType == null);
     });
 
     test('post_form', () async {
       final work = await SimplePostFormWork('超悟空', 32).start();
 
-      if (work.success) {
-        print('work result ${work.result}');
-      } else {
-        print('work error ${work.errorType} message ${work.message}');
-      }
+      print('work result ${work.result} message ${work.message}');
+      assert(work.success);
+      assert(work.errorType == null);
     });
 
     test('post_json', () async {
       final work = await SimplePostJsonWork('超悟空', 32).start();
 
-      if (work.success) {
-        print('work result ${work.result}');
-      } else {
-        print('work error ${work.errorType} message ${work.message}');
-      }
+      print('work result ${work.result} message ${work.message}');
+      assert(work.success);
+      assert(work.errorType == null);
     });
 
     test('post_json_string', () async {
       final work = await SimplePostJsonStringWork('超悟空', 32).start();
 
-      if (work.success) {
-        print('work result ${work.result}');
-      } else {
-        print('work error ${work.errorType} message ${work.message}');
-      }
+      print('work result ${work.result} message ${work.message}');
+      assert(work.success);
+      assert(work.errorType == null);
     });
 
     test('retry', () async {
       final work = await SimpleErrorWork().start(retry: 5);
 
-      if (!work.success) {
-        print('work error ${work.errorType} message ${work.message}');
-      }
+      print('work message ${work.message}');
+      assert(!work.success);
+      assert(work.errorType == WorkErrorType.response);
     });
 
     test('download', () async {
-      final work = await SimpleLoadWork().start(onReceiveProgress: (current, total) {
+      final work =
+          await SimpleLoadWork().start(onReceiveProgress: (current, total) {
         print(current * 100 ~/ total);
       });
 
-      if (work.success) {
-        print('work result ${work.result!.length}');
-      } else {
-        print('work error ${work.errorType} message ${work.message}');
-      }
+      print('work result ${work.result?.length} message ${work.message}');
+      assert(work.success);
+      assert(work.errorType == null);
     });
 
     test('upload', () async {
       final download = await SimpleLoadWork().start();
 
-      final work = await SimpleUploadWork(download.result!, name: 'test.webp', mimeType: 'image/webp').start(
-          onSendProgress: (current, total) {
+      final work = await SimpleUploadWork(download.result!,
+              name: 'test.webp', mimeType: 'image/webp')
+          .start(onSendProgress: (current, total) {
         print(current * 100 ~/ total);
       });
 
-      if (work.success) {
-        print('work result success');
-      } else {
-        print('work error ${work.errorType} message ${work.message}');
-      }
+      print('work message ${work.message}');
+      assert(work.success);
+      assert(work.errorType == null);
     });
 
     test('cancel', () async {
       final work = DelayWork('超悟空', 32, 5).start();
 
-      work.then((value) {
-        if (value.success) {
-          print('work result ${value.result}');
-        } else {
-          print('work error ${value.errorType} message ${value.message}');
-        }
+      Timer(Duration(seconds: 1), () {
+        work.cancel();
       });
 
-      await Future.delayed(Duration(seconds: 1));
+      final date = await work;
 
-      work.cancel();
+      print('work message ${date.message}');
+      assert(!date.success);
+      assert(date.errorType == WorkErrorType.cancel);
+    });
+
+    test('failed', () async {
+      final work = await SimpleRequestFailedWork().start();
+
+      assert(!work.success);
+      assert(work.errorType == WorkErrorType.task);
     });
 
     test('cache', () async {
       var work = await CacheableWork(1, '超悟空', 32).start();
 
-      if (work.success) {
-        print('work result ${work.result}');
-      } else {
-        print('work error ${work.errorType} message ${work.message}');
-      }
+      print('work result ${work.result} message ${work.message}');
+      assert(work.success);
+      assert(work.errorType == null);
+      assert(!work.fromCache);
 
       work = await CacheableWork(1, '超悟空', 32).start();
 
-      if (work.success) {
-        print('work result ${work.result} cache ${work.fromCache} message ${work.message}');
-      } else {
-        print('work error ${work.errorType} message ${work.message}');
-      }
+      print('work result ${work.result} message ${work.message}');
+      assert(work.success);
+      assert(work.errorType == null);
+      assert(work.fromCache);
     });
   });
 }
