@@ -111,8 +111,7 @@ class WorkFuture<T> implements Future<T> {
       _completer.future.catchError(onError, test: test);
 
   @override
-  Future<R> then<R>(FutureOr<R> Function(T value) onValue,
-          {Function? onError}) =>
+  Future<R> then<R>(FutureOr<R> Function(T value) onValue, {Function? onError}) =>
       _completer.future.then<R>(onValue, onError: onError);
 
   @override
@@ -120,12 +119,10 @@ class WorkFuture<T> implements Future<T> {
       _completer.future.timeout(timeLimit, onTimeout: onTimeout);
 
   @override
-  Future<T> whenComplete(FutureOr<void> Function() action) =>
-      _completer.future.whenComplete(action);
+  Future<T> whenComplete(FutureOr<void> Function() action) => _completer.future.whenComplete(action);
 
   @override
-  String toString() =>
-      '$_tag(${_isCanceled ? "canceled" : _completer.isCompleted ? "complete" : "active"})';
+  String toString() => '$_tag(${_isCanceled ? "canceled" : _completer.isCompleted ? "complete" : "active"})';
 }
 
 /// 任务的异常类型
