@@ -1,6 +1,10 @@
+## [3.2.0] - 2022/5/19
+
+* 在`WorkFuture`中增加若干实用方法
+
 ## [3.1.1] - 2022/5/18
 
-* 修复onParseFailed生命周期在onRequestFailed情况下也触发的bug
+* 修复`onParseFailed`生命周期在`onRequestFailed`情况下也触发的bug
 
 ## [3.1.0] - 2021/8/4
 

@@ -67,8 +67,8 @@ class WorkData<T> {
 
 /// 任务执行专用[Future]，提供了取消功能
 ///
-/// [T]为[WorkData]子类
-class WorkFuture<T> implements Future<T> {
+/// [D]为关联的接口结果数据类型，[T]为接口响应包装类型[WorkData]
+class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
   WorkFuture._(this._tag, this.onCanceled);
 
   /// 任务标识
@@ -111,7 +111,8 @@ class WorkFuture<T> implements Future<T> {
       _completer.future.catchError(onError, test: test);
 
   @override
-  Future<R> then<R>(FutureOr<R> Function(T value) onValue, {Function? onError}) =>
+  Future<R> then<R>(FutureOr<R> Function(T value) onValue,
+          {Function? onError}) =>
       _completer.future.then<R>(onValue, onError: onError);
 
   @override
@@ -119,10 +120,37 @@ class WorkFuture<T> implements Future<T> {
       _completer.future.timeout(timeLimit, onTimeout: onTimeout);
 
   @override
-  Future<T> whenComplete(FutureOr<void> Function() action) => _completer.future.whenComplete(action);
+  Future<T> whenComplete(FutureOr<void> Function() action) =>
+      _completer.future.whenComplete(action);
+
+  /// 仅当[Work]成功时，即[WorkData.success]为true时才执行[onValue]
+  ///
+  /// [WorkData.success]为false时返回null
+  Future<R?> thenSuccessful<R>(FutureOr<R> Function(T value) onValue) async {
+    final data = await _completer.future;
+    return data.success ? onValue(data) : Future.value();
+  }
+
+  /// 仅当[Work]失败时，即[WorkData.success]为false时才执行[onValue]
+  ///
+  /// [WorkData.success]为true时返回null
+  Future<R?> thenFailed<R>(FutureOr<R> Function(T value) onValue) async {
+    final data = await _completer.future;
+    return !data.success ? onValue(data) : Future.value();
+  }
+
+  /// `Work.start().then((data) => data.result)`的快捷方式
+  /// 它会等待[Work.start]完成后执行[onValue]参数为[WorkData.result]。
+  ///
+  /// 无论[Work]成功或失败都会执行[onValue]
+  Future<R?> thenResult<R>(FutureOr<R> Function(D? value) onValue) async {
+    final data = await _completer.future;
+    return onValue(data.result);
+  }
 
   @override
-  String toString() => '$_tag(${_isCanceled ? "canceled" : _completer.isCompleted ? "complete" : "active"})';
+  String toString() =>
+      '$_tag(${_isCanceled ? "canceled" : _completer.isCompleted ? "complete" : "active"})';
 }
 
 /// 任务的异常类型

@@ -14,7 +14,7 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 以及设置了[WorkRequestOptions.downloadPath]的下载任务中无效，
   /// * [onReceiveProgress]为数据接收/下载进度监听器，
   /// * 多次调用会启动多次请求
-  WorkFuture<T> start({
+  WorkFuture<D, T> start({
     int retry = 0,
     OnProgress? onSendProgress,
     OnProgress? onReceiveProgress,
@@ -46,7 +46,8 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 如果要覆盖全局实现，请覆盖[WorkConfig.workRequest]
   /// 如果仅覆盖本任务请重写此方法
   @protected
-  WorkRequest onWorkRequest(WorkRequestOptions options) => (workConfigs[options.configKey] ?? workConfig).workRequest;
+  WorkRequest onWorkRequest(WorkRequestOptions options) =>
+      (workConfigs[options.configKey] ?? workConfig).workRequest;
 
   /// 网络请求方法
   @protected
