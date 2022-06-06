@@ -42,8 +42,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
 
     final data = onCreateWorkData();
 
-    final future =
-        WorkFuture<D, T>._(_tag, () => data.options?.cancelToken.cancel());
+    final future = WorkFuture<D, T>._(_tag, () => data.options?.cancelToken.cancel());
 
     _onDo(
       data: data,
@@ -68,8 +67,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
       await _onStartWork(data);
 
       if (!data.fromCache) {
-        data._options =
-            await _onCreateOptions(onSendProgress, onReceiveProgress);
+        data._options = await _onCreateOptions(onSendProgress, onReceiveProgress);
         await _onDoWork(retry, data);
 
         log(_tag, 'onSuccessful');
@@ -78,7 +76,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
           await successful;
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
       data._success = false;
 
       var error;
@@ -86,10 +84,10 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
         data
           .._errorType = e.type
           .._message = e.message;
-        error = e.origin ?? e;
+        error = e;
       } else {
         data._errorType = WorkErrorType.other;
-        error = e;
+        error = stack;
       }
 
       if (data.errorType == WorkErrorType.cancel) {
@@ -144,8 +142,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
   }
 
   /// 构建请求选项参数
-  Future<WorkRequestOptions> _onCreateOptions(
-      OnProgress? onSendProgress, OnProgress? onReceiveProgress) async {
+  Future<WorkRequestOptions> _onCreateOptions(OnProgress? onSendProgress, OnProgress? onReceiveProgress) async {
     Map<String, dynamic>? data;
     Map<String, dynamic>? params;
 
@@ -206,8 +203,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
   Future<void> _onDoWork(int retry, T data) async {
     final request = onWorkRequest(data.options!);
 
-    data._response =
-        await _onCall(retry, data, await request(_tag, data.options!));
+    data._response = await _onCall(retry, data, await request(_tag, data.options!));
 
     await _onParseResponse(data);
   }
@@ -267,10 +263,10 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
         }
       } on WorkError catch (_) {
         rethrow;
-      } catch (e) {
-        log(_tag, 'http other error', e);
+      } catch (e, stack) {
+        log(_tag, 'http other error');
         log(_tag, 'onParamsError');
-        throw WorkError._(_tag, WorkErrorType.params, onParamsError(), e);
+        throw WorkError._(_tag, WorkErrorType.params, onParamsError(), e, stack);
       }
     } while (true);
 
@@ -309,15 +305,14 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
 
         // 提取服务返回的消息
         log(_tag, 'onRequestFailedMessage');
-        throw WorkError._(
-            _tag, WorkErrorType.task, onRequestFailedMessage(data));
+        throw WorkError._(_tag, WorkErrorType.task, onRequestFailedMessage(data));
       }
     } on WorkError catch (_) {
       rethrow;
-    } catch (e) {
+    } catch (e, stack) {
       // 解析失败
       log(_tag, 'onParseFailed');
-      throw WorkError._(_tag, WorkErrorType.parse, onParseFailed(data), e);
+      throw WorkError._(_tag, WorkErrorType.parse, onParseFailed(data), e, stack);
     }
   }
 }

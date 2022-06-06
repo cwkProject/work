@@ -10,12 +10,10 @@ abstract class BaseWork<D> extends Work<D, WorkData<D>> {
   WorkData<D> onCreateWorkData() => WorkData<D>();
 
   @override
-  bool onRequestResult(WorkData<D> data) =>
-      data.response!.data['headers'] != null;
+  bool onRequestResult(WorkData<D> data) => data.response!.data['headers'] != null;
 
   @override
-  String? onRequestSuccessfulMessage(WorkData<D> data) =>
-      data.response!.data['origin'];
+  String? onRequestSuccessfulMessage(WorkData<D> data) => data.response!.data['origin'];
 
   @override
   String? onRequestFailedMessage(WorkData<D> data) => '业务失败了';
@@ -45,8 +43,7 @@ class SimpleGetWork extends BaseWork<String> {
       };
 
   @override
-  String? onRequestSuccessful(WorkData<String> data) =>
-      data.response!.data['args'].toString();
+  String? onRequestSuccessful(WorkData<String> data) => data.response!.data['args'].toString();
 
   @override
   String onUrl() => '/get';
@@ -70,8 +67,7 @@ class SimplePostFormWork extends BaseWork<String> {
       };
 
   @override
-  String? onRequestSuccessful(WorkData<String> data) =>
-      data.response!.data['form'].toString();
+  String? onRequestSuccessful(WorkData<String> data) => data.response!.data['form'].toString();
 
   @override
   String onUrl() => '/post';
@@ -98,8 +94,7 @@ class SimplePostJsonWork extends BaseWork<String> {
       };
 
   @override
-  String? onRequestSuccessful(WorkData<String> data) =>
-      data.response!.data['json'].toString();
+  String? onRequestSuccessful(WorkData<String> data) => data.response!.data['json'].toString();
 
   @override
   String onUrl() => '/post';
@@ -123,12 +118,38 @@ class SimplePostJsonStringWork extends BaseWork<String> {
   Map<String, dynamic>? onFillParams() => null;
 
   @override
-  dynamic onPostFillParams(Map<String, dynamic>? data) =>
-      json.encode({'name': name, 'age': age});
+  dynamic onPostFillParams(Map<String, dynamic>? data) => json.encode({'name': name, 'age': age});
 
   @override
-  String? onRequestSuccessful(WorkData<String> data) =>
-      data.response!.data['json'].toString();
+  String? onRequestSuccessful(WorkData<String> data) => data.response!.data['json'].toString();
+
+  @override
+  String onUrl() => '/post';
+}
+
+/// 总是解析失败的任务
+class SimpleParseFailedWork extends BaseWork<int> {
+  SimpleParseFailedWork(this.content);
+
+  final String content;
+
+  @override
+  HttpMethod onHttpMethod() => HttpMethod.post;
+
+  @override
+  String? onContentType() => 'application/json';
+
+  @override
+  Map<String, dynamic>? onFillParams() => null;
+
+  @override
+  dynamic onPostFillParams(Map<String, dynamic>? data) => json.encode({'content': content});
+
+  @override
+  int? onRequestSuccessful(WorkData<int> data) => data.response!.data['json']['content'];
+
+  @override
+  String? onParseFailed(WorkData<int> data) => '数据解析错误';
 
   @override
   String onUrl() => '/post';
@@ -180,13 +201,11 @@ class SimpleUploadWork extends BaseWork<void> {
   @override
   Map<String, dynamic>? onFillParams() => {
         'name': name,
-        'file':
-            UploadFileInfo.bytes(buffer, fileName: name, mimeType: mimeType),
+        'file': UploadFileInfo.bytes(buffer, fileName: name, mimeType: mimeType),
       };
 
   @override
-  bool onRequestResult(WorkData<void> data) =>
-      data.response!.data['files']?.isNotEmpty == true;
+  bool onRequestResult(WorkData<void> data) => data.response!.data['files']?.isNotEmpty == true;
 
   @override
   void onRequestSuccessful(WorkData<void> data) {}
@@ -222,8 +241,7 @@ class SimpleLoadWork extends Work<List<int>, WorkData<List<int>>> {
   Map<String, dynamic>? onFillParams() => null;
 
   @override
-  List<int>? onRequestSuccessful(WorkData<List<int>> data) =>
-      data.response!.data;
+  List<int>? onRequestSuccessful(WorkData<List<int>> data) => data.response!.data;
 
   @override
   String onUrl() => '/image/webp';
@@ -246,8 +264,7 @@ class DelayWork extends BaseWork<String> {
       };
 
   @override
-  String? onRequestSuccessful(WorkData<String> data) =>
-      data.response!.data['args'].toString();
+  String? onRequestSuccessful(WorkData<String> data) => data.response!.data['args'].toString();
 
   @override
   String onUrl() => '/delay/$delay';
@@ -273,8 +290,7 @@ class CacheableWork extends BaseWork<String> {
       };
 
   @override
-  String? onRequestSuccessful(WorkData<String> data) =>
-      data.response!.data['args'].toString();
+  String? onRequestSuccessful(WorkData<String> data) => data.response!.data['args'].toString();
 
   @override
   String onUrl() => '/get';

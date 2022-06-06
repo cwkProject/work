@@ -111,8 +111,7 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
       _completer.future.catchError(onError, test: test);
 
   @override
-  Future<R> then<R>(FutureOr<R> Function(T value) onValue,
-          {Function? onError}) =>
+  Future<R> then<R>(FutureOr<R> Function(T value) onValue, {Function? onError}) =>
       _completer.future.then<R>(onValue, onError: onError);
 
   @override
@@ -120,8 +119,7 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
       _completer.future.timeout(timeLimit, onTimeout: onTimeout);
 
   @override
-  Future<T> whenComplete(FutureOr<void> Function() action) =>
-      _completer.future.whenComplete(action);
+  Future<T> whenComplete(FutureOr<void> Function() action) => _completer.future.whenComplete(action);
 
   /// 仅当[Work]成功时，即[WorkData.success]为true时才执行[onValue]
   ///
@@ -149,13 +147,12 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
   }
 
   @override
-  String toString() =>
-      '$_tag(${_isCanceled ? "canceled" : _completer.isCompleted ? "complete" : "active"})';
+  String toString() => '$_tag(${_isCanceled ? "canceled" : _completer.isCompleted ? "complete" : "active"})';
 }
 
 /// 任务的异常类型
 class WorkError implements Exception {
-  WorkError._(this._tag, this.type, [this.message, this.origin]);
+  WorkError._(this._tag, this.type, [this.message, this.origin, this.stack]);
 
   /// 任务标识
   final String _tag;
@@ -169,9 +166,23 @@ class WorkError implements Exception {
   /// 原始错误信息
   final dynamic origin;
 
+  /// 错误栈
+  final StackTrace? stack;
+
   @override
   String toString() {
-    return 'WorkError $_tag - $type :$message $origin';
+    final msg = StringBuffer('WorkError [$_tag - $type] :$message');
+    if (origin != null) {
+      msg.writeln();
+      msg.writeln('$origin');
+    }
+
+    if (stack != null) {
+      msg.writeln();
+      msg.writeln('$stack');
+    }
+
+    return msg.toString();
   }
 }
 

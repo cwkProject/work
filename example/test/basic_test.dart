@@ -98,6 +98,13 @@ void main() {
       assert(work.errorType == WorkErrorType.task);
     });
 
+    test('parseFailed', () async {
+      final work = await SimpleParseFailedWork('测试解析错误').start();
+
+      assert(!work.success);
+      assert(work.errorType == WorkErrorType.parse);
+    });
+
     test('cache', () async {
       var work = await CacheableWork(1, '超悟空', 32).start();
 
