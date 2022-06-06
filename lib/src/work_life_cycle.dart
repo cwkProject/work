@@ -46,7 +46,8 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 如果要覆盖全局实现，请覆盖[WorkConfig.workRequest]
   /// 如果仅覆盖本任务请重写此方法
   @protected
-  WorkRequest onWorkRequest(WorkRequestOptions options) => (workConfigs[options.configKey] ?? workConfig).workRequest;
+  WorkRequest onWorkRequest(WorkRequestOptions options) =>
+      (workConfigs[options.configKey] ?? workConfig).workRequest;
 
   /// 网络请求方法
   @protected
