@@ -15,8 +15,7 @@ Future<FormData> convertToDio(Map<String, dynamic> src) async {
         value.stream!,
         value.length!,
         filename: value.fileName,
-        contentType:
-            value.mimeType != null ? MediaType.parse(value.mimeType!) : null,
+        contentType: value.mimeType != null ? MediaType.parse(value.mimeType!) : null,
       );
     }
 
@@ -27,9 +26,7 @@ Future<FormData> convertToDio(Map<String, dynamic> src) async {
 
   for (final entry in src.entries) {
     if (entry.value is List) {
-      params[entry.key] =
-          await Stream.fromFutures(entry.value.map<Future<dynamic>>(onConvert))
-              .toList();
+      params[entry.key] = await Stream.fromFutures(entry.value.map<Future<dynamic>>(onConvert)).toList();
     } else {
       params[entry.key] = await onConvert(entry.value);
     }
