@@ -157,7 +157,9 @@ class HttpResponse {
   String get _headersToString {
     final stringBuffer = StringBuffer();
     headers?.forEach((key, value) {
-      value.forEach((e) => stringBuffer.writeln('$key: $e'));
+      for (var e in value) {
+        stringBuffer.writeln('$key: $e');
+      }
     });
     return stringBuffer.toString();
   }

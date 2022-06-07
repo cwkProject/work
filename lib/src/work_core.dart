@@ -81,7 +81,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
     } catch (e, stack) {
       data._success = false;
 
-      var error;
+      dynamic error;
       if (e is WorkError) {
         data
           .._errorType = e.type
