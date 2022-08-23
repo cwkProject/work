@@ -64,7 +64,7 @@ class WorkRequestOptions {
   /// 通常在[Work.onHeaders]中设置
   Map<String, dynamic>? headers;
 
-  /// 最终用于发送的请求参数
+  /// 用于发送的请求参数
   ///
   /// 通常在[Work.onFillParams]中装配并返回，此时框架会自动序列化参数，
   /// 支持[HttpMethod.get]和[HttpMethod.head]，
@@ -75,6 +75,14 @@ class WorkRequestOptions {
   /// 支持多种格式，通常有[Map]，[String]，[Stream]等，需要与[contentType]匹配，
   /// 同样可以使用自行拼装的[FormData]数据
   dynamic params;
+
+  /// 发送的请求查询参数
+  ///
+  /// 由[Work.onQueryParams]方法返回，
+  /// 用于配合"POST","PUT","PATCH","DELETE"方法传递在url中的查询参数。
+  ///
+  /// 如果在"GET","HEAD"中此参数非null，则会覆盖[params]参数。
+  Map<String, dynamic>? queryParams;
 
   /// 发送超时
   ///
@@ -127,7 +135,8 @@ class WorkRequestOptions {
 method: $method
 url: $url
 headers: $headers
-params: $params''';
+params: $params
+queryParams: $queryParams''';
 }
 
 /// 实际的Http响应数据

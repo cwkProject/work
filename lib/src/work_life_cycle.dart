@@ -125,6 +125,18 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   @protected
   FutureOr<dynamic> onPostFillParams(Map<String, dynamic>? data) => null;
 
+  /// 填充请求所需的查询参数
+  ///
+  /// 通常参数应该在[onFillParams],[onPreFillParams],[onPostFillParams]中填充，
+  /// 但是对于"POST","PUT","PATCH","DELETE"请求而言，
+  /// 除了请求体"body"中可以传参外也支持在url中传递参数，
+  /// 此生命周期方法就是用来辅助上述4类请求传递url中的查询参数所准备的。
+  ///
+  /// * 由于"GET","HEAD"请求本身并不支持请求体，所以对于这两类请求无需使用此方法。
+  /// * 但是如果在"GET","HEAD"请求中通过此方法返回了集合实例，则会覆盖由[onFillParams],[onPreFillParams],[onPostFillParams]生成的参数。
+  @protected
+  FutureOr<Map<String, dynamic>?> onQueryParams() => null;
+
   /// 网络请求执行前调用
   ///
   /// 如果在此处返回了任务结果的实例，则会认为本任务完成了从缓存读取的功能，

@@ -169,6 +169,8 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
 
     final postFillParams = onPostFillParams(data);
 
+    final queryParams = onQueryParams();
+
     final options = WorkRequestOptions()
       ..onSendProgress = onSendProgress
       ..onReceiveProgress = onReceiveProgress
@@ -182,6 +184,12 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
       options.params = await postFillParams ?? data;
     } else {
       options.params = postFillParams ?? data;
+    }
+
+    if (queryParams is Future<Map<String, dynamic>?>) {
+      options.queryParams = await queryParams;
+    } else {
+      options.queryParams = queryParams;
     }
 
     final headers = onHeaders();

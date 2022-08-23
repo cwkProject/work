@@ -19,7 +19,7 @@ Future<HttpCall> workRequest(String tag, WorkRequestOptions options) async {
   final client = (workConfigs[options.configKey] ?? workConfig).dio;
   final dioOptions = options.toDioOptions();
 
-  Map<String, dynamic>? queryParameters;
+  Map<String, dynamic>? queryParameters = options.queryParams;
 
   dynamic data;
 
@@ -27,7 +27,7 @@ Future<HttpCall> workRequest(String tag, WorkRequestOptions options) async {
     case HttpMethod.get:
     case HttpMethod.head:
       if (options.params is Map<String, dynamic>) {
-        queryParameters = options.params;
+        queryParameters ??= options.params;
       }
       break;
     default:
