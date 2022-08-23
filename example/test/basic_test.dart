@@ -36,6 +36,14 @@ void main() {
       assert(work.errorType == null);
     });
 
+    test('put_with_query', () async {
+      final work = await SimplePutWithQueryWork('超悟空', 32).start();
+
+      print('work result ${work.result} message ${work.message}');
+      assert(work.success);
+      assert(work.errorType == null);
+    });
+
     test('post_json_string', () async {
       final work = await SimplePostJsonStringWork('超悟空', 32).start();
 
