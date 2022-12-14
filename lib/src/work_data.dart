@@ -126,27 +126,50 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
   /// 仅当[Work]成功时，即[WorkData.success]为true时才执行[onValue]
   ///
   /// [WorkData.success]为false时返回null
-  Future<R?> thenSuccessful<R>(FutureOr<R> Function(T value) onValue) async {
-    final data = await _completer.future;
-    return data.success ? onValue(data) : Future.value();
-  }
+  Future<R?> thenSuccessful<R>(FutureOr<R> Function(T value) onValue) =>
+      _completer.future
+          .then((value) => value.success ? onValue(value) : Future.value());
 
   /// 仅当[Work]失败时，即[WorkData.success]为false时才执行[onValue]
   ///
   /// [WorkData.success]为true时返回null
-  Future<R?> thenFailed<R>(FutureOr<R> Function(T value) onValue) async {
-    final data = await _completer.future;
-    return !data.success ? onValue(data) : Future.value();
-  }
+  Future<R?> thenFailed<R>(FutureOr<R> Function(T value) onValue) =>
+      _completer.future
+          .then((value) => !value.success ? onValue(value) : Future.value());
 
   /// `Work.start().then((data) => data.result)`的快捷方式
   /// 它会等待[Work.start]完成后执行[onValue]参数为[WorkData.result]。
   ///
   /// 无论[Work]成功或失败都会执行[onValue]
-  Future<R?> thenResult<R>(FutureOr<R> Function(D? value) onValue) async {
-    final data = await _completer.future;
-    return onValue(data.result);
-  }
+  Future<R?> thenResult<R>(FutureOr<R> Function(D? value) onValue) =>
+      _completer.future.then((value) => onValue(value.result));
+
+  /// 获取结果或抛出异常
+  ///
+  /// 如果任务执行成功即[WorkData.success]为true时，返回[WorkData.result]的未来。
+  /// 如果任务执行失败即[WorkData.success]为false时，则抛出异常[WorkError]。
+  Future<D?> resultOrThrow() => _completer.future.then((value) => value.success
+      ? Future.value(value.result)
+      : Future.error(WorkError._(
+          _tag, value.errorType ?? WorkErrorType.other, value.message)));
+
+  /// 获取结果或抛出纯字符串异常
+  ///
+  /// 如果任务执行成功即[WorkData.success]为true时，返回[WorkData.result]的未来。
+  /// 如果任务执行失败即[WorkData.success]为false时，则抛出异常[WorkData.message]。
+  Future<D?> resultOrThrowMessage() =>
+      _completer.future.then((value) => value.success
+          ? Future.value(value.result)
+          : Future.error(value.message ?? ''));
+
+  /// 返回任务执行结果[WorkData.result]，无论任务成功或失败
+  Future<D?> result() => _completer.future.then((value) => value.result);
+
+  /// 返回任务执行结果的未来
+  Future<bool> success() => _completer.future.then((value) => value.success);
+
+  /// 返回[WorkData.message]无论任务成功或失败
+  Future<String?> message() => _completer.future.then((value) => value.message);
 
   @override
   String toString() =>

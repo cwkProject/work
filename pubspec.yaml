@@ -1,7 +1,7 @@
 name: work
 description: Encapsulate http business interface protocol, provide limited extension functions, isolate the underlying implementation method of http (currently based on dio).
 
-version: 3.3.0
+version: 3.3.1
 
 homepage: https://github.com/cwkProject/work
 
@@ -11,9 +11,9 @@ environment:
 dependencies:
   meta: ^1.7.0
   dio: ^4.0.6
-  mime: ^1.0.0
-  http_parser: ^4.0.0
-  path: ^1.8.0
+  mime: ^1.0.3
+  http_parser: ^4.0.2
+  path: ^1.8.3
 
 dev_dependencies:
-  flutter_lints: ^1.0.4
+  flutter_lints: ^2.0.1

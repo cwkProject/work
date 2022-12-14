@@ -1,3 +1,7 @@
+## [3.3.1] - 2022/12/14
+
+* 在`WorkFuture`中增加`resultOrThrow`，`resultOrThrowMessage`，`result`，`success`，`message`等实用方法
+
 ## [3.3.0] - 2022/8/23
 
 * 增加`onQueryParams`生命周期方法，用于在`POST`,`PUT`,`PATCH`,`DELETE`请求中为url追加查询参数

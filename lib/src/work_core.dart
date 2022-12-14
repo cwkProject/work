@@ -14,7 +14,6 @@ import 'work_model.dart';
 export 'dart:async';
 
 part 'work_data.dart';
-
 part 'work_life_cycle.dart';
 
 /// 任务流程的基本模型

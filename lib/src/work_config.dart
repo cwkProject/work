@@ -2,8 +2,8 @@
 
 import 'package:dio/dio.dart';
 
-import '_work_request.dart' as request;
 import '_print.dart';
+import '_work_request.dart' as request;
 import 'work_model.dart' show WorkRequest, WorkLogger;
 
 /// 是否开启debug模式，开启后会输出日志
