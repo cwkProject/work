@@ -1,3 +1,7 @@
+## [3.3.2] - 2022/12/14
+
+* 降级`path`依赖库到1.8.2
+
 ## [3.3.1] - 2022/12/14
 
 * 在`WorkFuture`中增加`resultOrThrow`，`resultOrThrowMessage`，`result`，`success`，`message`等实用方法
