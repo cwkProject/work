@@ -210,6 +210,7 @@ class UploadFileInfo {
   /// 使用文件的字节流[bytes]创建上传文件
   factory UploadFileInfo.bytes(List<int> bytes,
       {String? fileName, String? mimeType}) {
+    mimeType ??= fileName != null ? lookupMimeType(fileName) : null;
     return UploadFileInfo._raw(
         stream: Stream.fromIterable([bytes]),
         length: bytes.length,
@@ -221,6 +222,7 @@ class UploadFileInfo {
   /// 使用文件的字节流[stream]创建上传文件
   factory UploadFileInfo.stream(Stream<List<int>> stream, int length,
       {String? fileName, String? mimeType}) {
+    mimeType ??= fileName != null ? lookupMimeType(fileName) : null;
     return UploadFileInfo._raw(
         stream: stream,
         length: length,

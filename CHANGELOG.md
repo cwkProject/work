@@ -1,3 +1,8 @@
+## [3.3.3] - 2023/1/13
+
+* `UploadFileInfo.bytes`和`UploadFileInfo.stream`默认会依赖传入的`fileName`参数读取`mimeType`;
+* `WorkFuture.resultOrThrow`和`WorkFuture.resultOrThrowMessage`增加可选参数`onDo`;
+
 ## [3.3.2] - 2022/12/14
 
 * 降级`path`依赖库到1.8.2
@@ -83,8 +88,10 @@
 * BREAKING: 与1.0.0以下版本不兼容
 * BREAKING: 重构了`work`核心流程，`Work`实例改为由用户定义构造函数参数的方式来传入请求参数，`start`函数不再需要传递参数
 * BREAKING: 同一个`work`实例不再支持重复发送请求，多次请求请创建新的`Work`实例
-* BREAKING: 参数填充生命周期方法`onFillParams`和`onPreFillParams`签名变更，方便支持与[json_serializable](https://pub.dev/packages/json_serializable) 库协作填充参数
-* BREAKING: 为了兼容[json_serializable](https://pub.dev/packages/json_serializable) 库，原`httpMethod`方法更名为`onHttpMethod`
+* BREAKING: 参数填充生命周期方法`onFillParams`和`onPreFillParams`
+  签名变更，方便支持与[json_serializable](https://pub.dev/packages/json_serializable) 库协作填充参数
+* BREAKING: 为了兼容[json_serializable](https://pub.dev/packages/json_serializable) 库，原`httpMethod`
+  方法更名为`onHttpMethod`
 * BREAKING: 全生命周期函数移除`params`传入参数，新版中`Work`的请求参数请在具体的接口实现类中声明类属性的方式实现
 * 支持复数的自定义全局`dio`网络客户端实例，通过`Work`复写`onClientKey`来指定
 
@@ -217,8 +224,7 @@
 
 ## [0.2.3] - 2019/5/31
 
-* 将底层请求参数类型改为`dynamic`类型以便支持更加多请求参数格式
-  默认继续以`Map`为主要参数类型集合，如需使用其他数据结构，请实现`onPostFillParams`方法
+* 将底层请求参数类型改为`dynamic`类型以便支持更加多请求参数格式 默认继续以`Map`为主要参数类型集合，如需使用其他数据结构，请实现`onPostFillParams`方法
 
 ## [0.2.2] - 2019/2/14
 

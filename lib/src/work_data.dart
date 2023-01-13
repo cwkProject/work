@@ -148,19 +148,50 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
   ///
   /// 如果任务执行成功即[WorkData.success]为true时，返回[WorkData.result]的未来。
   /// 如果任务执行失败即[WorkData.success]为false时，则抛出异常[WorkError]。
-  Future<D?> resultOrThrow() => _completer.future.then((value) => value.success
-      ? Future.value(value.result)
-      : Future.error(WorkError._(
-          _tag, value.errorType ?? WorkErrorType.other, value.message)));
+  ///
+  /// [onDo]为任务执行成功即[WorkData.success]为true时，可选的执行函数，
+  /// 参数为[WorkData.result]此函数的执行不会修改方法最终返回的值。
+  Future<D?> resultOrThrow([FutureOr<void> Function(D? value)? onDo]) =>
+      _completer.future.then((value) {
+        if (!value.success) {
+          return Future.error(WorkError._(
+              _tag, value.errorType ?? WorkErrorType.other, value.message));
+        }
+
+        if (onDo != null) {
+          final done = onDo(value.result);
+
+          if (done is Future<void>) {
+            return done.then((_) => value.result);
+          }
+        }
+
+        return Future.value(value.result);
+      });
 
   /// 获取结果或抛出纯字符串异常
   ///
   /// 如果任务执行成功即[WorkData.success]为true时，返回[WorkData.result]的未来。
   /// 如果任务执行失败即[WorkData.success]为false时，则抛出异常[WorkData.message]。
-  Future<D?> resultOrThrowMessage() =>
-      _completer.future.then((value) => value.success
-          ? Future.value(value.result)
-          : Future.error(value.message ?? ''));
+  ///
+  /// [onDo]为任务执行成功即[WorkData.success]为true时，可选的执行函数，
+  /// 参数为[WorkData.result]此函数的执行不会修改方法最终返回的值。
+  Future<D?> resultOrThrowMessage([FutureOr<void> Function(D? value)? onDo]) =>
+      _completer.future.then((value) {
+        if (!value.success) {
+          return Future.error(value.message ?? '');
+        }
+
+        if (onDo != null) {
+          final done = onDo(value.result);
+
+          if (done is Future<void>) {
+            return done.then((_) => value.result);
+          }
+        }
+
+        return Future.value(value.result);
+      });
 
   /// 返回任务执行结果[WorkData.result]，无论任务成功或失败
   Future<D?> result() => _completer.future.then((value) => value.result);
