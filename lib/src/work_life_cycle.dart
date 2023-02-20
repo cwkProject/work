@@ -243,6 +243,13 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   @protected
   String? onParseFailed(T data) => null;
 
+  /// 最大重启次数
+  ///
+  /// 当[onSuccessful],[onFailed],[onCanceled],[onFinished]中有返回true时将丢弃本次结果重新执行[start]，
+  /// 但是通常重启不能无限执行，除了逻辑中断外还可以在这里设置最大重启次数，本次数不包含首次执行
+  @protected
+  int onMaxRestart() => 3;
+
   /// 本次任务执行成功后调用
   ///
   /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
@@ -254,8 +261,11 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// * 如果任务被[onStarted]拦截，则此方法不会被调用。
   /// * 此方法一定是从服务器获取了正确的数据后才执行，是个保存缓存的好地方。
   /// * 此方法不允许抛出异常，如果存在危险操作，请自行处理异常。
+  ///
+  /// * 返回值为是否重新执行本次请求，如果为true，则本次请求结果将不会从[start]调用点处返回，而是丢弃本次结果然后重新执行[start]方法后在调用点处返回。
+  /// * 当返回true时要注意避免进入无限重请求循环。
   @protected
-  FutureOr<void> onSuccessful(T data) {}
+  FutureOr<bool> onSuccessful(T data) => false;
 
   /// 本次任务执行失败后调用
   ///
@@ -264,8 +274,11 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// * 在任务执行中遇到异常或请求及处理失败时会进入异常流并执行此方法。
   /// * 该方法在[onFinished]之前被调用。
   /// * 该方法与[onCanceled]互斥，即如果任务因为用户主动取消而中断则不会进入该方法。
+  ///
+  /// * 返回值为是否重新执行本次请求，如果为true，则本次请求结果将不会从[start]调用点处返回，而是丢弃本次结果然后重新执行[start]方法后在调用点处返回。
+  /// * 当返回true时要注意避免进入无限重请求循环。
   @protected
-  FutureOr<void> onFailed(T data) {}
+  FutureOr<bool> onFailed(T data) => false;
 
   /// 任务被取消时调用
   ///
@@ -274,14 +287,20 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// * 在任务被取消后执行，即用户调用了[WorkFuture.cancel]。
   /// * 该方法在[onFinished]之前被调用。
   /// * 该方法与[onFailed]互斥。
+  ///
+  /// * 返回值为是否重新执行本次请求，如果为true，则本次请求结果将不会从[start]调用点处返回，而是丢弃本次结果然后重新执行[start]方法后在调用点处返回。
+  /// * 当返回true时要注意避免进入无限重请求循环。
   @protected
-  FutureOr<void> onCanceled(T data) {}
+  FutureOr<bool> onCanceled(T data) => false;
 
   /// 最后执行的一个方法
   ///
   /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建。
   ///
   /// 总是会执行
+  ///
+  /// * 返回值为是否重新执行本次请求，如果为true，则本次请求结果将不会从[start]调用点处返回，而是丢弃本次结果然后重新执行[start]方法后在调用点处返回。
+  /// * 当返回true时要注意避免进入无限重请求循环。
   @protected
-  FutureOr<void> onFinished(T data) {}
+  FutureOr<bool> onFinished(T data) => false;
 }

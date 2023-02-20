@@ -27,9 +27,9 @@ set debugWork(bool value) {
 WorkConfig workConfig = WorkConfig(
   dio: Dio(
     BaseOptions(
-      connectTimeout: 10000,
-      receiveTimeout: 30000,
-      sendTimeout: 30000,
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 30),
       contentType: 'application/x-www-form-urlencoded',
     ),
   ),

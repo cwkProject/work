@@ -348,7 +348,44 @@ class CacheableWork extends BaseWork<String> {
   String? onFromCacheMessage() => '本地缓存命中成功';
 
   @override
-  void onSuccessful(WorkData<String> data) {
+  bool onSuccessful(WorkData<String> data) {
     _caches[id] = data.result;
+    return false;
+  }
+}
+
+/// 重执行任务
+class RestartWork extends BaseWork<String> {
+  RestartWork(this.name, this.age);
+
+  final String name;
+
+  final int age;
+
+  bool _restart = false;
+
+  @override
+  HttpMethod onHttpMethod() => HttpMethod.post;
+
+  @override
+  String? onContentType() => 'application/json';
+
+  @override
+  Map<String, dynamic>? onFillParams() => {
+        'name': name,
+        'age': age,
+      };
+
+  @override
+  String? onRequestSuccessful(WorkData<String> data) =>
+      data.response!.data['json'].toString();
+
+  @override
+  String onUrl() => _restart ? '/post' : '/get';
+
+  @override
+  FutureOr<bool> onFailed(WorkData<String> data) {
+    _restart = true;
+    return true;
   }
 }

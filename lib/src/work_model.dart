@@ -46,8 +46,10 @@ class WorkRequestOptions {
   /// 完整的请求地址（包含http(s)://），或者是相对地址（需调用过[workConfig]设置全局dio根地址）
   late String url;
 
-  /// Http请求方法
-  HttpMethod method = HttpMethod.get;
+  /// [dio]中的请求选项，也是原始http请求的配置选项
+  ///
+  /// 在这里可以覆盖设置[Options.headers]，[Options.sendTimeout]，[Options.receiveTimeout]，[Options.responseType]等等
+  final dioOptions = Options();
 
   /// 发送/上传进度监听器，在[HttpMethod.get]和[HttpMethod.head]以及设置了[downloadPath]的下载任务中无效
   ///
@@ -59,11 +61,6 @@ class WorkRequestOptions {
   /// 在[Work.start]中传入
   OnProgress? onReceiveProgress;
 
-  /// 自定义/追加的Http请求头
-  ///
-  /// 通常在[Work.onHeaders]中设置
-  Map<String, dynamic>? headers;
-
   /// 用于发送的请求参数
   ///
   /// 通常在[Work.onFillParams]中装配并返回，此时框架会自动序列化参数，
@@ -72,7 +69,7 @@ class WorkRequestOptions {
   /// [multipartFormData]等与[Map]兼容的键值对或表单格式。
   ///
   /// 此外可以在[Work.onPostFillParams]中覆盖参数，
-  /// 支持多种格式，通常有[Map]，[String]，[Stream]等，需要与[contentType]匹配，
+  /// 支持多种格式，通常有[Map]，[String]，[Stream]等，需要与[Options.contentType]匹配，
   /// 同样可以使用自行拼装的[FormData]数据
   dynamic params;
 
@@ -83,34 +80,6 @@ class WorkRequestOptions {
   ///
   /// 如果在"GET","HEAD"中此参数非null，则会覆盖[params]参数。
   Map<String, dynamic>? queryParams;
-
-  /// 发送超时
-  ///
-  /// 传出流上前后两次发送数据的间隔，单位毫秒，
-  /// 可在[Work.onConfigOptions]中覆盖此属性，
-  /// 默认值为[WorkConfig.dio]中的设置。
-  int? sendTimeout;
-
-  /// 读取超时
-  ///
-  /// 响应流上前后两次接受到数据的间隔，单位毫秒
-  /// 可在[Work.onConfigOptions]中覆盖此属性，
-  /// 默认值为[WorkConfig.dio]中的设置。
-  int? readTimeout;
-
-  /// 请求的Content-Type
-  ///
-  /// 如果需要上传文件或表单提交，请将该值设置为[multipartFormData]，
-  /// 框架会自动进行表单装配，参考[params]的描述，
-  /// 可以在[Work.onContentType]中覆盖此属性，
-  /// 默认值为[WorkConfig.dio]中的设置，框架默认'application/x-www-form-urlencoded'
-  String? contentType;
-
-  /// 表示期望以哪种格式(方式)接受响应数据
-  ///
-  /// 可以在[Work.onResponseType]中覆盖此属性，
-  /// 默认值在[WorkConfig.dio]中设置，dio默认[ResponseType.json]。
-  ResponseType? responseType;
 
   /// 下载文件的本地存放路径
   ///
@@ -127,14 +96,12 @@ class WorkRequestOptions {
   /// 关联性请查看[workConfigs]
   String? configKey;
 
-  /// 在表单提交中自动装配数组使用的序列化格式
-  ListFormat? listFormat;
-
   @override
   String toString() => '''request 
-method: $method
+method: ${dioOptions.method}
 url: $url
-headers: $headers
+headers: ${dioOptions.headers}
+content-type: ${dioOptions.contentType}
 params: $params
 queryParams: $queryParams''';
 }
@@ -146,11 +113,12 @@ class HttpResponse {
     this.data,
     this.headers,
     this.statusCode = 0,
+    required this.realUri,
   });
 
   /// 响应数据
   ///
-  /// 通常数据类型由[ResponseType]决定
+  /// 通常数据类型由[Options.ResponseType]决定
   final dynamic data;
 
   /// 响应头信息
@@ -161,6 +129,11 @@ class HttpResponse {
 
   /// 请求成功失败标志
   final bool success;
+
+  /// 最终请求的地址
+  ///
+  /// 可能是重定向后的地址
+  final Uri realUri;
 
   /// 将头信息转换成文本输出
   String get _headersToString {
@@ -179,6 +152,7 @@ class HttpResponse {
 
   @override
   String toString() => '''response 
+realUri: $realUri
 success: $success; code: $statusCode
 headers: $_headersToString
 body: $_bodyToString''';
@@ -265,22 +239,27 @@ dynamic workFileToJsonConvert(dynamic file) => file;
 /// Http请求类型
 enum HttpMethod {
   /// GET请求
-  get,
+  get('GET'),
 
   /// POST请求
-  post,
+  post('POST'),
 
   /// PUT请求
-  put,
+  put('PUT'),
 
   /// DELETE请求
-  delete,
+  delete('DELETE'),
 
   /// HEAD请求
-  head,
+  head('HEAD'),
 
   /// PATCH请求
-  patch,
+  patch('PATCH');
+
+  const HttpMethod(this.name);
+
+  /// 对应的http方法名称
+  final String name;
 }
 
 /// Work的异常类型
@@ -291,7 +270,7 @@ enum WorkErrorType {
   params,
 
   /// 连接超时
-  connectTimeout,
+  connectionTimeout,
 
   /// 发送超时
   sendTimeout,
@@ -301,6 +280,12 @@ enum WorkErrorType {
 
   /// 服务器响应错误，4xx,5xx
   response,
+
+  /// socket连接失败
+  connection,
+
+  /// 证书错误
+  certificate,
 
   /// 用户取消请求
   cancel,

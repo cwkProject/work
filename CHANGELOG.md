@@ -1,3 +1,10 @@
+## [4.0.0] - 2023/1/13
+
+* BREAKING: 升级dio到5.0.0
+* BREAKING: `onSuccessful`,`onFailed`,`onCanceled`,`onFinished`增加布尔返回值，默认返回false，当它返回true时将阻止本次执行结果返回并重新启动任务
+* 增加`onMaxRestart`生命周期方法，表示上述重启任务的最大次数
+* BREAKING: 移除`WorkRequestOptions`中的部分参数，转移到`WorkRequestOptions.dioOptions`中
+
 ## [3.3.3] - 2023/1/13
 
 * `UploadFileInfo.bytes`和`UploadFileInfo.stream`默认会依赖传入的`fileName`参数读取`mimeType`;
