@@ -14,40 +14,34 @@ import 'work_model.dart';
 export 'dart:async';
 
 part 'work_data.dart';
+
 part 'work_life_cycle.dart';
 
 /// 任务流程的基本模型
 ///
 /// [D]为关联的接口结果数据类型，[T]为接口响应包装类型[WorkData]
 abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
-  /// 日志标签
-  String? _logTag;
-
-  /// 日志标签
-  String get _tag => _logTag ?? _createTag();
-
-  /// 创建日志标签
-  String _createTag() {
-    return _logTag = '$runtimeType@${hashCode.toRadixString(16)}';
-  }
-
   @override
   WorkFuture<D, T> start({
     int retry = 0,
     OnProgress? onSendProgress,
     OnProgress? onReceiveProgress,
   }) {
-    log(_tag, 'work start');
+    /// 日志标签
+    final tag = '$runtimeType@${hashCode.toRadixString(16)}';
+
+    log(tag, 'work start');
 
     T data = onCreateWorkData();
 
     final future =
-        WorkFuture<D, T>._(_tag, () => data.options?.cancelToken.cancel());
+        WorkFuture<D, T>._(tag, () => data.options?.cancelToken.cancel());
 
     int restart = 0;
 
     Future<void> onDo() async {
       while (await _onDo(
+            tag: tag,
             data: data,
             retry: retry,
             onSendProgress: onSendProgress,
@@ -70,6 +64,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
   ///
   /// 返回值表示是否重新执行本次请求
   Future<bool> _onDo({
+    required String tag,
     required T data,
     required int retry,
     OnProgress? onSendProgress,
@@ -78,14 +73,14 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
     bool restart = false;
 
     try {
-      await _onStartWork(data);
+      await _onStartWork(tag, data);
 
       if (!data.fromCache) {
         data._options =
             await _onCreateOptions(onSendProgress, onReceiveProgress);
-        await _onDoWork(retry, data);
+        await _onDoWork(tag, retry, data);
 
-        log(_tag, 'onSuccessful');
+        log(tag, 'onSuccessful');
         final successful = onSuccessful(data);
         if (successful is Future<void>) {
           await successful;
@@ -106,7 +101,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
       }
 
       if (data.errorType == WorkErrorType.cancel) {
-        log(_tag, 'onCanceled');
+        log(tag, 'onCanceled');
         FutureOr<bool> canceled = onCanceled(data);
         if (canceled is Future<bool>) {
           canceled = await canceled;
@@ -116,7 +111,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
           restart = canceled;
         }
       } else {
-        log(_tag, 'onFailed', error);
+        log(tag, 'onFailed', error);
         FutureOr<bool> failed = onFailed(data);
         if (failed is Future<void>) {
           failed = await failed;
@@ -126,7 +121,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
         }
       }
     } finally {
-      log(_tag, 'onFinished');
+      log(tag, 'onFinished');
       FutureOr<bool> finished = onFinished(data);
       if (finished is Future<void>) {
         finished = await finished;
@@ -136,21 +131,21 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
       }
     }
 
-    log(_tag, 'work end');
+    log(tag, 'work end');
 
     return restart;
   }
 
   /// 任务启动前置方法
-  Future<void> _onStartWork(T data) async {
+  Future<void> _onStartWork(String tag, T data) async {
     final check = onCheckParams();
     final checkResult = (check is Future<bool>) ? await check : check;
     if (!checkResult) {
-      log(_tag, 'onParamsError');
-      throw WorkError._(_tag, WorkErrorType.params, onParamsError());
+      log(tag, 'onParamsError');
+      throw WorkError._(tag, WorkErrorType.params, onParamsError());
     }
 
-    log(_tag, 'onStarted');
+    log(tag, 'onStarted');
     final willRequest = onStarted();
     if (willRequest is Future<D?>) {
       data._result = await willRequest;
@@ -161,7 +156,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
     if (data._result != null) {
       data._success = true;
       data._fromCache = true;
-      log(_tag, 'onFromCacheMessage');
+      log(tag, 'onFromCacheMessage');
       data._message = onFromCacheMessage();
     }
   }
@@ -234,29 +229,30 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
   /// 核心任务执行
   ///
   /// 此处为真正启动http请求的方法
-  Future<void> _onDoWork(int retry, T data) async {
+  Future<void> _onDoWork(String tag, int retry, T data) async {
     final request = onWorkRequest(data.options!);
 
     data._response =
-        await _onCall(retry, data, await request(_tag, data.options!));
+        await _onCall(tag, retry, data, await request(tag, data.options!));
 
-    await _onParseResponse(data);
+    await _onParseResponse(tag, data);
   }
 
   /// 执行网络请求
-  Future<HttpResponse> _onCall(int retry, T data, HttpCall call) async {
+  Future<HttpResponse> _onCall(
+      String tag, int retry, T data, HttpCall call) async {
     if (retry < 0) {
       retry = 0;
     }
 
-    log(_tag, 'original', data.options);
+    log(tag, 'original', data.options);
 
     HttpResponse httpResponse;
     var i = 0;
 
     do {
       if (i > 0) {
-        log(_tag, 'retry $i');
+        log(tag, 'retry $i');
       }
 
       final startTime = Timeline.now;
@@ -264,16 +260,16 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
       try {
         final response = await call();
         httpResponse = response.toHttpResponse();
-        log(_tag, 'request use ${Timeline.now - startTime}μs');
-        log(_tag, 'final url:', _FinalRequestOptions(response.requestOptions));
-        log(_tag, 'http', httpResponse);
+        log(tag, 'request use ${Timeline.now - startTime}μs');
+        log(tag, 'final url:', _FinalRequestOptions(response.requestOptions));
+        log(tag, 'http', httpResponse);
         break;
       } on DioError catch (e) {
-        log(_tag, 'request use ${Timeline.now - startTime}μs');
-        log(_tag, 'http error', e.type);
+        log(tag, 'request use ${Timeline.now - startTime}μs');
+        log(tag, 'http error', e.type);
 
         if (e.type == DioErrorType.cancel) {
-          throw WorkError._(_tag, WorkErrorType.cancel);
+          throw WorkError._(tag, WorkErrorType.cancel);
         }
 
         if (i < retry) {
@@ -286,25 +282,24 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
           .._response = e.response?.toHttpResponse()
           .._errorType = errorType;
 
-        log(_tag, 'final url:', _FinalRequestOptions(e.requestOptions));
-        log(_tag, 'http', data.response);
+        log(tag, 'final url:', _FinalRequestOptions(e.requestOptions));
+        log(tag, 'http', data.response);
 
         if (e.type == DioErrorType.badResponse) {
           // 网络请求失败
-          log(_tag, 'onNetworkRequestFailed');
-          throw WorkError._(_tag, errorType, onNetworkRequestFailed(data), e);
+          log(tag, 'onNetworkRequestFailed');
+          throw WorkError._(tag, errorType, onNetworkRequestFailed(data), e);
         } else {
           // 网络连接失败
-          log(_tag, 'onNetworkError');
-          throw WorkError._(_tag, errorType, onNetworkError(data), e);
+          log(tag, 'onNetworkError');
+          throw WorkError._(tag, errorType, onNetworkError(data), e);
         }
       } on WorkError catch (_) {
         rethrow;
       } catch (e, stack) {
-        log(_tag, 'http other error');
-        log(_tag, 'onParamsError');
-        throw WorkError._(
-            _tag, WorkErrorType.params, onParamsError(), e, stack);
+        log(tag, 'http other error');
+        log(tag, 'onParamsError');
+        throw WorkError._(tag, WorkErrorType.params, onParamsError(), e, stack);
       }
     } while (true);
 
@@ -312,15 +307,15 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
   }
 
   /// 解析响应数据
-  Future<void> _onParseResponse(T data) async {
+  Future<void> _onParseResponse(String tag, T data) async {
     try {
       // 提取服务执行结果
-      log(_tag, 'onRequestResult');
+      log(tag, 'onRequestResult');
       data._success = onRequestResult(data);
 
       if (data.success) {
         // 服务请求成功回调
-        log(_tag, 'onRequestSuccessful');
+        log(tag, 'onRequestSuccessful');
         final responseSuccessful = onRequestSuccessful(data);
         if (responseSuccessful is Future<D?>) {
           data._result = await responseSuccessful;
@@ -329,11 +324,11 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
         }
 
         // 提取服务返回的消息
-        log(_tag, 'onRequestSuccessMessage');
+        log(tag, 'onRequestSuccessMessage');
         data._message = onRequestSuccessfulMessage(data);
       } else {
         // 服务请求失败回调
-        log(_tag, 'onRequestFailed');
+        log(tag, 'onRequestFailed');
         final requestFailed = onRequestFailed(data);
         if (requestFailed is Future<D?>) {
           data._result = await requestFailed;
@@ -342,17 +337,17 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
         }
 
         // 提取服务返回的消息
-        log(_tag, 'onRequestFailedMessage');
+        log(tag, 'onRequestFailedMessage');
         throw WorkError._(
-            _tag, WorkErrorType.task, onRequestFailedMessage(data));
+            tag, WorkErrorType.task, onRequestFailedMessage(data));
       }
     } on WorkError catch (_) {
       rethrow;
     } catch (e, stack) {
       // 解析失败
-      log(_tag, 'onParseFailed');
+      log(tag, 'onParseFailed');
       throw WorkError._(
-          _tag, WorkErrorType.parse, onParseFailed(data), e, stack);
+          tag, WorkErrorType.parse, onParseFailed(data), e, stack);
     }
   }
 }
