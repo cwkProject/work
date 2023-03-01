@@ -9,7 +9,7 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 启动任务
   ///
   /// 返回包含执行结果[T]的[WorkFuture]。
-  /// * [retry]为请求失败最大重试次数，0表示不重试，实际请求1次，1表示重试1次，实际最多请求两次，以此类推，
+  /// * [retry]为内部网络请求失败时的最大重试次数，0表示不重试，实际请求1次，1表示重试1次，实际最多请求两次，以此类推，
   /// * [onSendProgress]为数据发送/上传进度监听器，在[HttpMethod.get]和[HttpMethod.head]中无效，
   /// 以及设置了[WorkRequestOptions.downloadPath]的下载任务中无效，
   /// * [onReceiveProgress]为数据接收/下载进度监听器，
@@ -246,7 +246,11 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 最大重启次数
   ///
   /// 当[onSuccessful],[onFailed],[onCanceled],[onFinished]中有返回true时将丢弃本次结果重新执行[start]，
-  /// 但是通常重启不能无限执行，除了逻辑中断外还可以在这里设置最大重启次数，本次数不包含首次执行
+  /// 但是通常重启不能无限执行，除了逻辑中断外还可以在这里设置最大重启次数，本次数不包含首次执行。
+  ///
+  /// * 此处的重启不同于[start]中的`retry`参数，两者互不干扰同时生效。
+  /// * `retry`参数仅表示最终网络请求的重试次数，重试期间不会执行其它work的生命周期函数。
+  /// * 此处的重启表示work本身的重新启动，每次重启与首次执行[start]方法的参数和流程相同。
   @protected
   int onMaxRestart() => 3;
 
@@ -263,7 +267,11 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// * 此方法不允许抛出异常，如果存在危险操作，请自行处理异常。
   ///
   /// * 返回值为是否重新执行本次请求，如果为true，则本次请求结果将不会从[start]调用点处返回，而是丢弃本次结果然后重新执行[start]方法后在调用点处返回。
-  /// * 当返回true时要注意避免进入无限重请求循环。
+  /// * 当返回true时要注意避免进入无限重请求循环，[onMaxRestart]可以限制最大重试次数。
+  ///
+  /// * 此处的重启不同于[start]中的`retry`参数，两者互不干扰同时生效。
+  /// * `retry`参数仅表示最终网络请求的重试次数，重试期间不会执行其它work的生命周期函数。
+  /// * 此处的重启表示work本身的重新启动，每次重启与首次执行[start]方法的参数和流程相同。
   @protected
   FutureOr<bool> onSuccessful(T data) => false;
 
@@ -276,7 +284,11 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// * 该方法与[onCanceled]互斥，即如果任务因为用户主动取消而中断则不会进入该方法。
   ///
   /// * 返回值为是否重新执行本次请求，如果为true，则本次请求结果将不会从[start]调用点处返回，而是丢弃本次结果然后重新执行[start]方法后在调用点处返回。
-  /// * 当返回true时要注意避免进入无限重请求循环。
+  /// * 当返回true时要注意避免进入无限重请求循环，[onMaxRestart]可以限制最大重试次数。
+  ///
+  /// * 此处的重启不同于[start]中的`retry`参数，两者互不干扰同时生效。
+  /// * `retry`参数仅表示最终网络请求的重试次数，重试期间不会执行其它work的生命周期函数。
+  /// * 此处的重启表示work本身的重新启动，每次重启与首次执行[start]方法的参数和流程相同。
   @protected
   FutureOr<bool> onFailed(T data) => false;
 
@@ -289,7 +301,11 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// * 该方法与[onFailed]互斥。
   ///
   /// * 返回值为是否重新执行本次请求，如果为true，则本次请求结果将不会从[start]调用点处返回，而是丢弃本次结果然后重新执行[start]方法后在调用点处返回。
-  /// * 当返回true时要注意避免进入无限重请求循环。
+  /// * 当返回true时要注意避免进入无限重请求循环，[onMaxRestart]可以限制最大重试次数。
+  ///
+  /// * 此处的重启不同于[start]中的`retry`参数，两者互不干扰同时生效。
+  /// * `retry`参数仅表示最终网络请求的重试次数，重试期间不会执行其它work的生命周期函数。
+  /// * 此处的重启表示work本身的重新启动，每次重启与首次执行[start]方法的参数和流程相同。
   @protected
   FutureOr<bool> onCanceled(T data) => false;
 
@@ -300,7 +316,11 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 总是会执行
   ///
   /// * 返回值为是否重新执行本次请求，如果为true，则本次请求结果将不会从[start]调用点处返回，而是丢弃本次结果然后重新执行[start]方法后在调用点处返回。
-  /// * 当返回true时要注意避免进入无限重请求循环。
+  /// * 当返回true时要注意避免进入无限重请求循环，[onMaxRestart]可以限制最大重试次数。
+  ///
+  /// * 此处的重启不同于[start]中的`retry`参数，两者互不干扰同时生效。
+  /// * `retry`参数仅表示最终网络请求的重试次数，重试期间不会执行其它work的生命周期函数。
+  /// * 此处的重启表示work本身的重新启动，每次重启与首次执行[start]方法的参数和流程相同。
   @protected
   FutureOr<bool> onFinished(T data) => false;
 }
