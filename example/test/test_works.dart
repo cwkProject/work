@@ -386,6 +386,6 @@ class RestartWork extends BaseWork<String> {
   @override
   FutureOr<bool> onFailed(WorkData<String> data) {
     _restart = true;
-    return true;
+    return data.restartCount == 0;
   }
 }
