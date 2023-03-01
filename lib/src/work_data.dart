@@ -32,6 +32,9 @@ class WorkData<T> {
   /// 标记本次任务的结果是否是从本地缓存加载
   bool _fromCache = false;
 
+  /// 当前任务是第几次重启
+  int _restartCount = 0;
+
   /// 本次任务请求是否成功
   ///
   ///
@@ -63,6 +66,14 @@ class WorkData<T> {
   ///
   /// 如果在[Work.onStarted]中提前返回了[result]，则此属性返回true
   bool get fromCache => _fromCache;
+
+  /// 当前任务是第几次重启
+  ///
+  /// 0表示首次用户调用[Work.start]的正常启动执行，大于0表示当前是第几次重新启动任务。
+  ///
+  /// 当[Work.onSuccessful],[Work.onFailed],[Work.onCanceled],[Work.onFinished]中有返回true时将会重新执行[Work.start]，
+  /// 并且重新执行的[Work]生命周期中的`data`句柄中此变量会加1。
+  int get restartCount => _restartCount;
 }
 
 /// 任务执行专用[Future]，提供了取消功能

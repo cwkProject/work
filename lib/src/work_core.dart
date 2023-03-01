@@ -50,6 +50,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
           restart < onMaxRestart()) {
         restart++;
         data = onCreateWorkData();
+        data._restartCount = restart;
       }
     }
 
