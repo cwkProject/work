@@ -1,7 +1,7 @@
 name: work
 description: Encapsulate http business interface protocol, provide limited extension functions, isolate the underlying implementation method of http (currently based on dio).
 
-version: 4.0.1
+version: 4.0.2
 
 homepage: https://github.com/cwkProject/work
 
@@ -10,7 +10,7 @@ environment:
 
 dependencies:
   meta: ^1.8.0
-  dio: ^5.0.0
+  dio: ^5.1.1
   mime: ^1.0.3
   http_parser: ^4.0.2
   path: ^1.8.2

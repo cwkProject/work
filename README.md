@@ -9,11 +9,11 @@
 * 此设计隐藏了一些不常用的[dio](https://pub.dartlang.org/packages/dio) 功能，如需使用需要单独实现装配器
 * 此设计的优点是规范团队接口编写方式，统一项目http接口代码风格。
 
-## 与2.0.0以下版本不兼容
+## Install
 
-## Usage
-
-* [添加`work`到`pubspec.yaml`](https://pub.dartlang.org/packages/work/install).
+```yaml
+work: ^4.0.2
+```
 
 ## 实现公司http规范基类
 
@@ -112,7 +112,7 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
 
 `<T>`为真正需要返回的数据模型类
 
-1.0.0版开始数据填充接口`onFillParams`签名变更，使用更加友好，同时更方便与[json_serializable](https://pub.dev/packages/json_serializable) 库结合使用
+子类可以方便的与[json_serializable](https://pub.dev/packages/json_serializable) 库结合使用
 
 示例
 

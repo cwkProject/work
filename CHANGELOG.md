@@ -1,3 +1,8 @@
+## [4.0.2] - 2023/4/19
+
+* `DioErrorType.unknown`类型错误进入`onNetworkRequestFailed`生命周期
+* 修改文档
+
 ## [4.0.1] - 2023/3/1
 
 * 完善重启相关的注释描述
