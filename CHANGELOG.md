@@ -1,3 +1,11 @@
+## [5.0.0] - 2023/6/15
+
+* BREAKING:修改`onCheckParams`,`onParamsError`,`onConfigOptions`,`onPostFillParams`,`onStarted`,`onFromCacheMessage`等方法的签名，增加了`WorkData`参数
+* 新增`onPostQueryParams`生命周期方法
+* `WorkData`增加`extra`参数，可以跨重试周期传递自定义参数
+* 修改`Work`类声明，现在可以定义为`const`类型
+* `WorkFuture`增加`requiredResultOrThrow`和`requiredResultOrThrowMessage`方法，方便返回非空结果。
+
 ## [4.0.2] - 2023/4/19
 
 * `DioErrorType.unknown`类型错误进入`onNetworkRequestFailed`生命周期

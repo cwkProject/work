@@ -51,6 +51,7 @@ class WorkData<T> {
 
   /// 本次任务请求的全部参数
   ///
+  /// 在[Work.onConfigOptions]生命周期执行后出现
   /// 如果[fromCache]为true，则此值为空
   WorkRequestOptions? get options => _options;
 
@@ -74,6 +75,13 @@ class WorkData<T> {
   /// 当[Work.onSuccessful],[Work.onFailed],[Work.onCanceled],[Work.onFinished]中有返回true时将会重新执行[Work.start]，
   /// 并且重新执行的[Work]生命周期中的`data`句柄中此变量会加1。
   int get restartCount => _restartCount;
+
+  /// 任务执行生命周期中可以由用户自由赋值并传递的自定义数据
+  ///
+  /// 此数据可以贯穿全生命周期，包括[restartCount]描述的重试流程。
+  /// 比如在第一次访问失败时进入[Work.onFailed]并返回true，同时给[extra]赋值则会在第二次重试流程的生命周期中读取该值，
+  /// 即便第二次重试中[WorkData]是个全新实例。
+  dynamic extra;
 }
 
 /// 任务执行专用[Future]，提供了取消功能
@@ -202,6 +210,74 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
         }
 
         return Future.value(value.result);
+      });
+
+  /// 获取非空结果或抛出异常
+  ///
+  /// 如果任务执行成功即[WorkData.success]为true时，返回[WorkData.result]的非空未来。
+  /// 如果任务执行失败即[WorkData.success]为false时，则抛出异常[WorkError]。
+  ///
+  /// [onDo]为任务执行成功即[WorkData.success]为true时，可选的执行函数，
+  /// 参数为[WorkData.result]此函数的执行不会修改方法最终返回的值。
+  ///
+  /// 如果[WorkData.result]为null则会抛出异常[WorkError]
+  Future<D> requiredResultOrThrow([FutureOr<void> Function(D value)? onDo]) =>
+      _completer.future.then((value) {
+        if (!value.success) {
+          return Future.error(WorkError._(
+              _tag, value.errorType ?? WorkErrorType.other, value.message));
+        }
+
+        final result = value.result;
+
+        if (result == null) {
+          return Future.error(
+              WorkError._(_tag, WorkErrorType.noResult, 'empty result'));
+        }
+
+        if (onDo != null) {
+          final done = onDo(result);
+
+          if (done is Future<void>) {
+            return done.then((_) => result);
+          }
+        }
+
+        return Future.value(result);
+      });
+
+  /// 获取非空结果或抛出纯字符串异常
+  ///
+  /// 如果任务执行成功即[WorkData.success]为true时，返回[WorkData.result]的非空未来。
+  /// 如果任务执行失败即[WorkData.success]为false时，则抛出异常[WorkData.message]。
+  ///
+  /// [onDo]为任务执行成功即[WorkData.success]为true时，可选的执行函数，
+  /// 参数为[WorkData.result]此函数的执行不会修改方法最终返回的值。
+  ///
+  /// 如果[WorkData.result]为null则会抛出异常[WorkError]
+  Future<D> requiredResultOrThrowMessage(
+          [FutureOr<void> Function(D value)? onDo]) =>
+      _completer.future.then((value) {
+        if (!value.success) {
+          return Future.error(value.message ?? '');
+        }
+
+        final result = value.result;
+
+        if (result == null) {
+          return Future.error(
+              WorkError._(_tag, WorkErrorType.noResult, 'empty result'));
+        }
+
+        if (onDo != null) {
+          final done = onDo(result);
+
+          if (done is Future<void>) {
+            return done.then((_) => result);
+          }
+        }
+
+        return Future.value(result);
       });
 
   /// 返回任务执行结果[WorkData.result]，无论任务成功或失败

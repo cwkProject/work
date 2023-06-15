@@ -301,6 +301,11 @@ enum WorkErrorType {
   /// Http请求成功，但是读取响应数据时出错
   parse,
 
+  /// [WorkData.result]为null
+  ///
+  /// 目前仅在[WorkFuture.requiredResultOrThrow]和[WorkFuture.requiredResultOrThrowMessage]中可能抛出
+  noResult,
+
   /// 一些其他异常，可能是网络库或其他数据处理异常
   other,
 }

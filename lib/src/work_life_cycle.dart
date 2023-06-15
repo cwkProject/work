@@ -5,7 +5,8 @@ part of 'work_core.dart';
 /// 任务流程的生命周期接口
 ///
 /// [D]为关联的接口结果数据类型，[T]为接口响应包装类型[WorkData]
-abstract class WorkLifeCycle<D, T extends WorkData<D>> {
+@immutable
+mixin WorkLifeCycle<D, T extends WorkData<D>> {
   /// 启动任务
   ///
   /// 返回包含执行结果[T]的[WorkFuture]。
@@ -26,19 +27,25 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
 
   /// 参数合法性检测
   ///
+  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
+  /// 可以获取用户传递的自定义[WorkData.extra]值
+  ///
   /// * 用于检测任务启动所需的参数是否合法，需要子类重写检测规则。
   /// * 检测成功任务才会被正常执行，如果检测失败则[onParamsError]会被调用，
   /// 且后续网络请求任务不再执行，并进入异常流[onFailed]。
   /// * 参数合法返回true，非法返回false。
   @protected
-  FutureOr<bool> onCheckParams() => true;
+  FutureOr<bool> onCheckParams(T data) => true;
 
   /// 参数检测不合法时调用
+  ///
+  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
+  /// 可以获取用户传递的自定义[WorkData.extra]值
   ///
   /// * [onCheckParams]返回false时或者url不合法时被调用，且后续网络请求任务不再执行，并进入异常流[onFailed]。
   /// * 返回错误消息内容，将会设置给[WorkData.message]
   @protected
-  String? onParamsError() => null;
+  String? onParamsError(T data) => null;
 
   /// 返回请求实现方法
   ///
@@ -85,6 +92,9 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
 
   /// 自定义配置http请求选择项
   ///
+  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
+  /// 可以获取用户传递的自定义[WorkData.extra]值
+  ///
   /// * [options]为请求将要使用的配置选项，修改[options]的属性以定制http行为。
   /// * [options]包含[onHttpMethod]返回的请求方法，
   /// [onContentType]填充的Content-Type
@@ -96,7 +106,7 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// [onConfigKey]返回的客户端配置key
   /// 以上属性都可以在这里被覆盖。
   @protected
-  FutureOr<void> onConfigOptions(WorkRequestOptions options) {}
+  FutureOr<void> onConfigOptions(T data, WorkRequestOptions options) {}
 
   /// 填充请求所需的前置参数
   ///
@@ -115,15 +125,19 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
 
   /// 填充请求所需的后置参数
   ///
+  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
+  /// 可以获取用户传递的自定义[WorkData.extra]值
+  ///
   /// * 适合对参数进行签名（通过项目中实现的定制[Work]基类完成）
-  /// * [data]为请求参数集，由[onPreFillParams]和[onFillParams]生成
-  /// * 可以直接在[data]中增加新参数（比如签名参数），也可以返回新集合
-  /// * 不返回参数或返回null则继续使用[data]作为请求参数，也可以直接返回[data]
+  /// * [params]为请求参数集，由[onPreFillParams]和[onFillParams]生成
+  /// * 可以直接在[params]中增加新参数（比如签名参数），也可以返回新集合
+  /// * 不返回参数或返回null则继续使用[params]作为请求参数，也可以直接返回[params]
   /// * 如果需要使用其他数据类型作为请求参数，请返回新的数据集合对象，
   /// 通常有[Map]，[String]，[Stream]等，需要与Content-Type匹配，
   /// 同样可以使用自行拼装的[FormData]数据
   @protected
-  FutureOr<dynamic> onPostFillParams(Map<String, dynamic>? data) => null;
+  FutureOr<dynamic> onPostFillParams(T data, Map<String, dynamic>? params) =>
+      null;
 
   /// 填充请求所需的查询参数
   ///
@@ -137,7 +151,24 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   @protected
   FutureOr<Map<String, dynamic>?> onQueryParams() => null;
 
+  /// 后置填充请求所需的查询参数
+  ///
+  /// 返回结果为新的参数集合，默认返回[onQueryParams]的返回值
+  ///
+  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
+  /// 可以获取用户传递的自定义[WorkData.extra]值
+  ///
+  /// 在[onQueryParams]填充之后执行的填充方法，[params]为[onQueryParams]的返回值。
+  /// 此函数通常用于做参数签名或者追加填充[WorkData.extra]中传递的值。
+  @protected
+  FutureOr<Map<String, dynamic>?> onPostQueryParams(
+          T data, Map<String, dynamic>? params) =>
+      params;
+
   /// 网络请求执行前调用
+  ///
+  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
+  /// 可以获取用户传递的自定义[WorkData.extra]值
   ///
   /// 如果在此处返回了任务结果的实例，则会认为本任务完成了从缓存读取的功能，
   /// 后续的网络请求将不会被执行，任务将会返回成功即[WorkData.success]为true，
@@ -146,13 +177,16 @@ abstract class WorkLifeCycle<D, T extends WorkData<D>> {
   /// 如果不需要加载缓存，返回null即可，
   /// 此时可以用于做一些前置操作，比如操作记录，统计等。
   @protected
-  FutureOr<D?> onStarted() => null;
+  FutureOr<D?> onStarted(T data) => null;
 
   /// 从本地缓存加载数据时的结果消息
   ///
+  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
+  /// 可以获取用户传递的自定义[WorkData.extra]值
+  ///
   /// 在[onStarted]返回非空数据拦截请求时，设置给[WorkData.message]的值
   @protected
-  String? onFromCacheMessage() => null;
+  String? onFromCacheMessage(T data) => null;
 
   /// 提取任务执行结果
   ///

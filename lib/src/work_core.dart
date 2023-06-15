@@ -14,12 +14,16 @@ import 'work_model.dart';
 export 'dart:async';
 
 part 'work_data.dart';
+
 part 'work_life_cycle.dart';
 
 /// 任务流程的基本模型
 ///
 /// [D]为关联的接口结果数据类型，[T]为接口响应包装类型[WorkData]
-abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
+@optionalTypeArgs
+abstract class Work<D, T extends WorkData<D>> with WorkLifeCycle<D, T> {
+  const Work();
+
   @override
   WorkFuture<D, T> start({
     int retry = 0,
@@ -31,29 +35,35 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
 
     log(tag, 'work start');
 
-    T data = onCreateWorkData();
+    void Function()? onCancel;
 
-    final future =
-        WorkFuture<D, T>._(tag, () => data.options?.cancelToken.cancel());
-
-    int restart = 0;
+    final future = WorkFuture<D, T>._(tag, () => onCancel?.call());
 
     Future<void> onDo() async {
-      while (await _onDo(
-            tag: tag,
-            data: data,
-            retry: retry,
-            onSendProgress: onSendProgress,
-            onReceiveProgress: onReceiveProgress,
-          ) &&
-          restart < onMaxRestart()) {
-        restart++;
+      int restart = 0;
+      dynamic extra;
+      T data;
+      do {
         data = onCreateWorkData();
         data._restartCount = restart;
-      }
+        data.extra = extra;
+        onCancel = () => data.options?.cancelToken.cancel();
+        if (!await _onDo(
+          tag: tag,
+          data: data,
+          retry: retry,
+          onSendProgress: onSendProgress,
+          onReceiveProgress: onReceiveProgress,
+        )) {
+          break;
+        }
+        extra = data.extra;
+      } while (restart++ < onMaxRestart());
+
+      future._complete(data);
     }
 
-    onDo().then((_) => future._complete(data));
+    onDo();
 
     return future;
   }
@@ -77,7 +87,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
 
       if (!data.fromCache) {
         data._options =
-            await _onCreateOptions(onSendProgress, onReceiveProgress);
+            await _onCreateOptions(data, onSendProgress, onReceiveProgress);
         await _onDoWork(tag, retry, data);
 
         log(tag, 'onSuccessful');
@@ -138,15 +148,15 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
 
   /// 任务启动前置方法
   Future<void> _onStartWork(String tag, T data) async {
-    final check = onCheckParams();
+    final check = onCheckParams(data);
     final checkResult = (check is Future<bool>) ? await check : check;
     if (!checkResult) {
       log(tag, 'onParamsError');
-      throw WorkError._(tag, WorkErrorType.params, onParamsError());
+      throw WorkError._(tag, WorkErrorType.params, onParamsError(data));
     }
 
     log(tag, 'onStarted');
-    final willRequest = onStarted();
+    final willRequest = onStarted(data);
     if (willRequest is Future<D?>) {
       data._result = await willRequest;
     } else {
@@ -157,39 +167,60 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
       data._success = true;
       data._fromCache = true;
       log(tag, 'onFromCacheMessage');
-      data._message = onFromCacheMessage();
+      data._message = onFromCacheMessage(data);
     }
   }
 
   /// 构建请求选项参数
   Future<WorkRequestOptions> _onCreateOptions(
-      OnProgress? onSendProgress, OnProgress? onReceiveProgress) async {
-    Map<String, dynamic>? data;
+      T data, OnProgress? onSendProgress, OnProgress? onReceiveProgress) async {
+    final options = WorkRequestOptions();
     Map<String, dynamic>? params;
 
-    var fillParams = onPreFillParams();
-    if (fillParams is Future<Map<String, dynamic>?>) {
-      data = await fillParams;
+    var futureParams = onPreFillParams();
+    if (futureParams is Future<Map<String, dynamic>?>) {
+      params = await futureParams;
     } else {
-      data = fillParams;
+      params = futureParams;
     }
 
-    fillParams = onFillParams();
-    if (fillParams is Future<Map<String, dynamic>?>) {
-      params = await fillParams;
+    futureParams = onFillParams();
+    Map<String, dynamic>? fillParams;
+    if (futureParams is Future<Map<String, dynamic>?>) {
+      fillParams = await futureParams;
     } else {
-      params = fillParams;
+      fillParams = futureParams;
     }
 
-    if (params != null) {
-      data = (data?..addAll(params)) ?? params;
+    if (fillParams != null) {
+      params = (params?..addAll(fillParams)) ?? fillParams;
     }
 
-    final postFillParams = onPostFillParams(data);
+    final postFillParams = onPostFillParams(data, params);
 
-    final queryParams = onQueryParams();
+    if (postFillParams is Future<dynamic>) {
+      options.params = await postFillParams ?? params;
+    } else {
+      options.params = postFillParams ?? params;
+    }
 
-    final options = WorkRequestOptions()
+    futureParams = onQueryParams();
+
+    if (futureParams is Future<Map<String, dynamic>?>) {
+      options.queryParams = await futureParams;
+    } else {
+      options.queryParams = futureParams;
+    }
+
+    futureParams = onPostQueryParams(data, options.queryParams);
+
+    if (futureParams is Future<Map<String, dynamic>?>) {
+      options.queryParams = await futureParams;
+    } else {
+      options.queryParams = futureParams;
+    }
+
+    options
       ..onSendProgress = onSendProgress
       ..onReceiveProgress = onReceiveProgress
       ..dioOptions.method = onHttpMethod().name
@@ -198,18 +229,6 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
       ..dioOptions.responseType = onResponseType()
       ..url = onUrl();
 
-    if (postFillParams is Future<dynamic>) {
-      options.params = await postFillParams ?? data;
-    } else {
-      options.params = postFillParams ?? data;
-    }
-
-    if (queryParams is Future<Map<String, dynamic>?>) {
-      options.queryParams = await queryParams;
-    } else {
-      options.queryParams = queryParams;
-    }
-
     final headers = onHeaders();
     if (headers is Future<Map<String, dynamic>?>) {
       options.dioOptions.headers = await headers;
@@ -217,7 +236,7 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
       options.dioOptions.headers = headers;
     }
 
-    final configOptions = onConfigOptions(options);
+    final configOptions = onConfigOptions(data, options);
 
     if (configOptions is Future<void>) {
       await configOptions;
@@ -300,7 +319,8 @@ abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
       } catch (e, stack) {
         log(tag, 'http other error');
         log(tag, 'onParamsError');
-        throw WorkError._(tag, WorkErrorType.params, onParamsError(), e, stack);
+        throw WorkError._(
+            tag, WorkErrorType.params, onParamsError(data), e, stack);
       }
     } while (true);
 

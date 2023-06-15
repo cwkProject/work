@@ -6,6 +6,8 @@ import 'package:work/work.dart';
 
 /// 一个简单的任务基类
 abstract class BaseWork<D> extends Work<D, WorkData<D>> {
+  const BaseWork();
+
   @override
   WorkData<D> onCreateWorkData() => WorkData<D>();
 
@@ -155,7 +157,8 @@ class SimplePostJsonStringWork extends BaseWork<String> {
   Map<String, dynamic>? onFillParams() => null;
 
   @override
-  dynamic onPostFillParams(Map<String, dynamic>? data) =>
+  dynamic onPostFillParams(
+          WorkData<String> data, Map<String, dynamic>? params) =>
       json.encode({'name': name, 'age': age});
 
   @override
@@ -182,7 +185,7 @@ class SimpleParseFailedWork extends BaseWork<int> {
   Map<String, dynamic>? onFillParams() => null;
 
   @override
-  dynamic onPostFillParams(Map<String, dynamic>? data) =>
+  dynamic onPostFillParams(WorkData<int> data, Map<String, dynamic>? params) =>
       json.encode({'content': content});
 
   @override
@@ -342,10 +345,10 @@ class CacheableWork extends BaseWork<String> {
   String onUrl() => '/get';
 
   @override
-  String? onStarted() => _caches[id];
+  String? onStarted(WorkData<String> data) => _caches[id];
 
   @override
-  String? onFromCacheMessage() => '本地缓存命中成功';
+  String? onFromCacheMessage(WorkData<String> data) => '本地缓存命中成功';
 
   @override
   bool onSuccessful(WorkData<String> data) {
@@ -361,8 +364,6 @@ class RestartWork extends BaseWork<String> {
   final String name;
 
   final int age;
-
-  bool _restart = false;
 
   @override
   HttpMethod onHttpMethod() => HttpMethod.post;
@@ -381,11 +382,18 @@ class RestartWork extends BaseWork<String> {
       data.response!.data['json'].toString();
 
   @override
-  String onUrl() => _restart ? '/post' : '/get';
+  String onUrl() => '/get';
+
+  @override
+  FutureOr<void> onConfigOptions(
+      WorkData<String> data, WorkRequestOptions options) {
+    if (data.restartCount > 0) {
+      options.url = '/post';
+    }
+  }
 
   @override
   FutureOr<bool> onFailed(WorkData<String> data) {
-    _restart = true;
     return data.restartCount == 0;
   }
 }
