@@ -175,6 +175,7 @@ abstract class Work<D, T extends WorkData<D>> with WorkLifeCycle<D, T> {
     data._success = true;
     data._fromCache = true;
 
+    log(tag, 'onFromCache');
     final willCache = onFromCache(data);
     if (willCache is Future<D?>) {
       data._result = await willCache;
