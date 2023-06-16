@@ -155,19 +155,35 @@ abstract class Work<D, T extends WorkData<D>> with WorkLifeCycle<D, T> {
     }
 
     log(tag, 'onStarted');
-    final willRequest = onStarted(data);
-    if (willRequest is Future<D?>) {
-      data._result = await willRequest;
-    } else {
-      data._result = willRequest;
+    final willStarted = onStarted(data);
+    if (willStarted is Future<void>) {
+      await willStarted;
     }
 
-    if (data._result != null) {
-      data._success = true;
-      data._fromCache = true;
-      log(tag, 'onFromCacheMessage');
-      data._message = onFromCacheMessage(data);
+    log(tag, 'onHitCache');
+    final willHitCache = onHitCache(data);
+    if (willHitCache is Future<bool>) {
+      if (!await willHitCache) {
+        return;
+      }
+    } else if (!willHitCache) {
+      return;
     }
+
+    log(tag, 'hitCache success');
+
+    data._success = true;
+    data._fromCache = true;
+
+    final willCache = onFromCache(data);
+    if (willCache is Future<D?>) {
+      data._result = await willCache;
+    } else {
+      data._result = willCache;
+    }
+
+    log(tag, 'onFromCacheMessage');
+    data._message = onFromCacheMessage(data);
   }
 
   /// 构建请求选项参数
@@ -176,23 +192,11 @@ abstract class Work<D, T extends WorkData<D>> with WorkLifeCycle<D, T> {
     final options = WorkRequestOptions();
     Map<String, dynamic>? params;
 
-    var futureParams = onPreFillParams();
+    var futureParams = onFillParams();
     if (futureParams is Future<Map<String, dynamic>?>) {
       params = await futureParams;
     } else {
       params = futureParams;
-    }
-
-    futureParams = onFillParams();
-    Map<String, dynamic>? fillParams;
-    if (futureParams is Future<Map<String, dynamic>?>) {
-      fillParams = await futureParams;
-    } else {
-      fillParams = futureParams;
-    }
-
-    if (fillParams != null) {
-      params = (params?..addAll(fillParams)) ?? fillParams;
     }
 
     final postFillParams = onPostFillParams(data, params);

@@ -1,3 +1,9 @@
+## [5.1.0] - 2023/6/16
+
+* BREAKING:移除了`onPreFillParams`生命周期
+* BREAKING:修改`onStarted`方法签名，不再支持返回缓存数据，由`onHitChache`和`onFromCache`替代
+* 新增`onHitChache`和`onFromCache`用于从缓存加载数据
+
 ## [5.0.0] - 2023/6/15
 
 * BREAKING:修改`onCheckParams`,`onParamsError`,`onConfigOptions`,`onPostFillParams`,`onStarted`,`onFromCacheMessage`等方法的签名，增加了`WorkData`参数

@@ -65,7 +65,7 @@ class WorkData<T> {
 
   /// 标记本次任务的结果是否是从本地缓存加载
   ///
-  /// 如果在[Work.onStarted]中提前返回了[result]，则此属性返回true
+  /// 当[Work.onHitCache]返回true时此属性也为true
   bool get fromCache => _fromCache;
 
   /// 当前任务是第几次重启

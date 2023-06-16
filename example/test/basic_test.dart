@@ -129,6 +129,23 @@ void main() {
       assert(work.fromCache);
     });
 
+    test('cacheByFailed', () async {
+      var work = await CacheableByFailedWork(2, '超悟空', 32).start();
+
+      print('work result ${work.result} message ${work.message}');
+      assert(work.success);
+      assert(work.errorType == null);
+      assert(!work.fromCache);
+
+      work = await CacheableByFailedWork(2, '超悟空', 32).start();
+
+      print('work result ${work.result} message ${work.message}');
+      assert(work.success);
+      assert(work.restartCount == 1);
+      assert(work.errorType == null);
+      assert(work.fromCache);
+    });
+
     test('restart', () async {
       final work = await RestartWork('超悟空', 32).start();
 

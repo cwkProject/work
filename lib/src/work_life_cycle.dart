@@ -108,18 +108,9 @@ mixin WorkLifeCycle<D, T extends WorkData<D>> {
   @protected
   FutureOr<void> onConfigOptions(T data, WorkRequestOptions options) {}
 
-  /// 填充请求所需的前置参数
-  ///
-  /// * 适合填充项目中所有接口必须传递的固定参数（通过项目中实现的定制[Work]基类完成）
-  /// * 返回预填充的参数对，没有预填充参数时返回null或空对象
-  /// * 返回的参数最终会和[onFillParams]中返回的参数合并，且可能会被[onFillParams]中的同名参数覆盖
-  @protected
-  FutureOr<Map<String, dynamic>?> onPreFillParams() => null;
-
   /// 填充请求所需的参数
   ///
   /// * 返回填充的参数对，没有参数时返回null或空对象
-  /// * 返回的参数最终会和[onPreFillParams]中返回的参数合并，且可以覆盖[onPreFillParams]中的同名参数
   @protected
   FutureOr<Map<String, dynamic>?> onFillParams();
 
@@ -129,7 +120,7 @@ mixin WorkLifeCycle<D, T extends WorkData<D>> {
   /// 可以获取用户传递的自定义[WorkData.extra]值
   ///
   /// * 适合对参数进行签名（通过项目中实现的定制[Work]基类完成）
-  /// * [params]为请求参数集，由[onPreFillParams]和[onFillParams]生成
+  /// * [params]为请求参数集，由[onFillParams]生成
   /// * 可以直接在[params]中增加新参数（比如签名参数），也可以返回新集合
   /// * 不返回参数或返回null则继续使用[params]作为请求参数，也可以直接返回[params]
   /// * 如果需要使用其他数据类型作为请求参数，请返回新的数据集合对象，
@@ -141,13 +132,13 @@ mixin WorkLifeCycle<D, T extends WorkData<D>> {
 
   /// 填充请求所需的查询参数
   ///
-  /// 通常参数应该在[onFillParams],[onPreFillParams],[onPostFillParams]中填充，
+  /// 通常参数应该在[onFillParams],[onPostFillParams]中填充，
   /// 但是对于"POST","PUT","PATCH","DELETE"请求而言，
   /// 除了请求体"body"中可以传参外也支持在url中传递参数，
   /// 此生命周期方法就是用来辅助上述4类请求传递url中的查询参数所准备的。
   ///
   /// * 由于"GET","HEAD"请求本身并不支持请求体，所以对于这两类请求无需使用此方法。
-  /// * 但是如果在"GET","HEAD"请求中通过此方法返回了集合实例，则会覆盖由[onFillParams],[onPreFillParams],[onPostFillParams]生成的参数。
+  /// * 但是如果在"GET","HEAD"请求中通过此方法返回了集合实例，则会覆盖由[onFillParams],[onPostFillParams]生成的参数。
   @protected
   FutureOr<Map<String, dynamic>?> onQueryParams() => null;
 
@@ -170,21 +161,41 @@ mixin WorkLifeCycle<D, T extends WorkData<D>> {
   /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
   /// 可以获取用户传递的自定义[WorkData.extra]值
   ///
-  /// 如果在此处返回了任务结果的实例，则会认为本任务完成了从缓存读取的功能，
-  /// 后续的网络请求将不会被执行，任务将会返回成功即[WorkData.success]为true，
+  /// 可以用于做一些前置操作，比如初始化资源，操作记录，统计等。
+  @protected
+  FutureOr<void> onStarted(T data) => null;
+
+  /// 是否命中了缓存
+  ///
+  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
+  /// 可以获取用户传递的自定义[WorkData.extra]值
+  ///
+  /// 此生命周期紧跟在[onStarted]之后执行
+  ///
+  /// 如果在此处返回true，则会认为本任务需要从缓存读加载结果，
+  /// 后续的网络请求将不会被执行，而是进入[onFromCache]和[onFromCacheMessage]生命周期。
+  /// 任务将会返回成功即[WorkData.success]为true，
   /// 并跳过生命周期[onSuccessful]直接进入[onFinished]。
   ///
-  /// 如果不需要加载缓存，返回null即可，
-  /// 此时可以用于做一些前置操作，比如操作记录，统计等。
+  /// 如果不需要加载缓存，返回false即可（默认值），
   @protected
-  FutureOr<D?> onStarted(T data) => null;
+  FutureOr<bool> onHitCache(T data) => false;
+
+  /// 从缓存加载结果数据
+  ///
+  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
+  /// 可以获取用户传递的自定义[WorkData.extra]值
+  ///
+  /// 当[onHitCache]返回true时会进入该生命周期进行缓存数据加载。
+  @protected
+  FutureOr<D?> onFromCache(T data) => null;
 
   /// 从本地缓存加载数据时的结果消息
   ///
   /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
   /// 可以获取用户传递的自定义[WorkData.extra]值
   ///
-  /// 在[onStarted]返回非空数据拦截请求时，设置给[WorkData.message]的值
+  /// 在[onHitCache]返回true时，设置给[WorkData.message]的值
   @protected
   String? onFromCacheMessage(T data) => null;
 

@@ -318,12 +318,12 @@ class DelayWork extends BaseWork<String> {
   String onUrl() => '/delay/$delay';
 }
 
+/// 假设这是个本地缓存数据库
+final _caches = <int, String?>{};
+
 /// 简单的可缓存任务
 class CacheableWork extends BaseWork<String> {
   CacheableWork(this.id, this.name, this.age);
-
-  /// 假设这是个本地缓存数据库
-  static final _caches = <int, String?>{};
 
   final String name;
 
@@ -345,10 +345,71 @@ class CacheableWork extends BaseWork<String> {
   String onUrl() => '/get';
 
   @override
-  String? onStarted(WorkData<String> data) => _caches[id];
+  FutureOr<bool> onHitCache(WorkData<String> data) {
+    return _caches[id] != null;
+  }
+
+  @override
+  FutureOr<String?> onFromCache(WorkData<String> data) {
+    return _caches[id];
+  }
 
   @override
   String? onFromCacheMessage(WorkData<String> data) => '本地缓存命中成功';
+
+  @override
+  bool onSuccessful(WorkData<String> data) {
+    _caches[id] = data.result;
+    return false;
+  }
+}
+
+/// 当首次请求失败后从缓存加载的任务
+class CacheableByFailedWork extends BaseWork<String> {
+  CacheableByFailedWork(this.id, this.name, this.age);
+
+  final String name;
+
+  final int age;
+
+  final int id;
+
+  @override
+  Map<String, dynamic>? onFillParams() => {
+        'name': name,
+        'age': age,
+      };
+
+  @override
+  bool onRequestResult(WorkData<String> data) {
+    return super.onRequestResult(data) && _caches[id] == null;
+  }
+
+  @override
+  String? onRequestSuccessful(WorkData<String> data) =>
+      data.response!.data['args'].toString();
+
+  @override
+  String onUrl() => '/get';
+
+  @override
+  FutureOr<bool> onHitCache(WorkData<String> data) {
+    return data.extra != null;
+  }
+
+  @override
+  FutureOr<String?> onFromCache(WorkData<String> data) {
+    return data.extra;
+  }
+
+  @override
+  String? onFromCacheMessage(WorkData<String> data) => '本地缓存命中成功';
+
+  @override
+  FutureOr<bool> onFailed(WorkData<String> data) {
+    data.extra = _caches[id];
+    return _caches[id] != null;
+  }
 
   @override
   bool onSuccessful(WorkData<String> data) {
