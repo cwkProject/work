@@ -12,7 +12,7 @@
 ## Install
 
 ```yaml
-work: ^5.1.0
+work: ^5.1.1
 ```
 
 ## 实现公司http规范基类

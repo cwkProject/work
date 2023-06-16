@@ -307,8 +307,7 @@ abstract class Work<D, T extends WorkData<D>> with WorkLifeCycle<D, T> {
         log(tag, 'final url:', _FinalRequestOptions(e.requestOptions));
         log(tag, 'http', data.response);
 
-        if (e.type == DioErrorType.badResponse ||
-            e.type == DioErrorType.unknown) {
+        if (e.type == DioErrorType.badResponse) {
           // 网络请求失败
           log(tag, 'onNetworkRequestFailed');
           throw WorkError._(tag, errorType, onNetworkRequestFailed(data), e);

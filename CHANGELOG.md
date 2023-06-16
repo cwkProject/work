@@ -1,3 +1,7 @@
+## [5.1.1] - 2023/6/16
+
+* 将`DioErrorType.unknown`也归类为网络错误
+
 ## [5.1.0] - 2023/6/16
 
 * BREAKING:移除了`onPreFillParams`生命周期
