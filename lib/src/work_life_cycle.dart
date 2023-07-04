@@ -7,20 +7,6 @@ part of 'work_core.dart';
 /// [D]为关联的接口结果数据类型，[T]为接口响应包装类型[WorkData]
 @immutable
 mixin WorkLifeCycle<D, T extends WorkData<D>> {
-  /// 启动任务
-  ///
-  /// 返回包含执行结果[T]的[WorkFuture]。
-  /// * [retry]为内部网络请求失败时的最大重试次数，0表示不重试，实际请求1次，1表示重试1次，实际最多请求两次，以此类推，
-  /// * [onSendProgress]为数据发送/上传进度监听器，在[HttpMethod.get]和[HttpMethod.head]中无效，
-  /// 以及设置了[WorkRequestOptions.downloadPath]的下载任务中无效，
-  /// * [onReceiveProgress]为数据接收/下载进度监听器，
-  /// * 多次调用会启动多次请求
-  WorkFuture<D, T> start({
-    int retry = 0,
-    OnProgress? onSendProgress,
-    OnProgress? onReceiveProgress,
-  });
-
   /// 创建数据模型对象的实例
   @protected
   T onCreateWorkData();
@@ -57,38 +43,56 @@ mixin WorkLifeCycle<D, T extends WorkData<D>> {
       (workConfigs[options.configKey] ?? workConfig).workRequest;
 
   /// 网络请求方法
+  ///
+  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
+  /// 可以获取用户传递的自定义[WorkData.extra]值
   @protected
-  HttpMethod onHttpMethod() => HttpMethod.get;
+  HttpMethod onHttpMethod(T data) => HttpMethod.get;
 
   /// 网络请求body的Content-Type
+  ///
+  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
+  /// 可以获取用户传递的自定义[WorkData.extra]值
   ///
   /// 默认使用[WorkConfig]中的配置，
   /// 此值必须与[onFillParams]或[onPostFillParams]返回的参数类型兼容。
   @protected
-  String? onContentType() => null;
+  String? onContentType(T data) => null;
 
   /// 网络请求地址
   ///
+  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
+  /// 可以获取用户传递的自定义[WorkData.extra]值
+  ///
   /// 可以是完整地址，也可以是相对地址（需要在[BaseOptions]中设置，关联性请查看[WorkConfig.dio]）
   @protected
-  String onUrl();
+  String onUrl(T data);
 
   /// 用于指定全局网络客户端配置的key
+  ///
+  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
+  /// 可以获取用户传递的自定义[WorkData.extra]值
   ///
   /// 返回null或key不存在则表示使用默认客户端配置[workConfig]
   /// 关联性请查看[workConfigs]
   @protected
-  String? onConfigKey() => null;
+  String? onConfigKey(T data) => null;
 
   /// 创建并填充请求头
+  ///
+  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
+  /// 可以获取用户传递的自定义[WorkData.extra]值
   @protected
-  FutureOr<Map<String, dynamic>?> onHeaders() => null;
+  FutureOr<Map<String, dynamic>?> onHeaders(T data) => null;
 
   /// 表示期望以哪种格式(方式)接受响应数据
   ///
+  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
+  /// 可以获取用户传递的自定义[WorkData.extra]值
+  ///
   /// 默认值在[WorkConfig.dio]中设置，dio默认[ResponseType.json]。
   @protected
-  ResponseType? onResponseType() => null;
+  ResponseType? onResponseType(T data) => null;
 
   /// 自定义配置http请求选择项
   ///
@@ -98,63 +102,40 @@ mixin WorkLifeCycle<D, T extends WorkData<D>> {
   /// * [options]为请求将要使用的配置选项，修改[options]的属性以定制http行为。
   /// * [options]包含[onHttpMethod]返回的请求方法，
   /// [onContentType]填充的Content-Type
-  /// [onPreFillParams]，[onFillParams]以及[onPostFillParams]填充的参数，
+  /// [onFillParams]填充的参数，
   /// [onUrl]返回的请求地址，
   /// [onHeaders]中创建的请求头，
   /// [onResponseType]中返回的响应格式，
-  /// [start]传入的[onSendProgress]和[onReceiveProgress]，
+  /// [Work.start]传入的[onSendProgress]和[onReceiveProgress]，
   /// [onConfigKey]返回的客户端配置key
   /// 以上属性都可以在这里被覆盖。
   @protected
   FutureOr<void> onConfigOptions(T data, WorkRequestOptions options) {}
 
-  /// 填充请求所需的参数
-  ///
-  /// * 返回填充的参数对，没有参数时返回null或空对象
-  @protected
-  FutureOr<Map<String, dynamic>?> onFillParams();
-
-  /// 填充请求所需的后置参数
+  /// 生成请求所需的参数
   ///
   /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
   /// 可以获取用户传递的自定义[WorkData.extra]值
   ///
-  /// * 适合对参数进行签名（通过项目中实现的定制[Work]基类完成）
-  /// * [params]为请求参数集，由[onFillParams]生成
-  /// * 可以直接在[params]中增加新参数（比如签名参数），也可以返回新集合
-  /// * 不返回参数或返回null则继续使用[params]作为请求参数，也可以直接返回[params]
-  /// * 如果需要使用其他数据类型作为请求参数，请返回新的数据集合对象，
-  /// 通常有[Map]，[String]，[Stream]等，需要与Content-Type匹配，
+  /// 返回类型通常是[Map]，也可以是[String]，[List]，[Stream]等，需要与Content-Type匹配，
   /// 同样可以使用自行拼装的[FormData]数据
   @protected
-  FutureOr<dynamic> onPostFillParams(T data, Map<String, dynamic>? params) =>
-      null;
+  FutureOr<dynamic> onFillParams(T data);
 
-  /// 填充请求所需的查询参数
+  /// 生成请求所需的查询参数
   ///
-  /// 通常参数应该在[onFillParams],[onPostFillParams]中填充，
+  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
+  /// 可以获取用户传递的自定义[WorkData.extra]值
+  ///
+  /// 通常参数应该在[onFillParams]中填充，
   /// 但是对于"POST","PUT","PATCH","DELETE"请求而言，
   /// 除了请求体"body"中可以传参外也支持在url中传递参数，
   /// 此生命周期方法就是用来辅助上述4类请求传递url中的查询参数所准备的。
   ///
   /// * 由于"GET","HEAD"请求本身并不支持请求体，所以对于这两类请求无需使用此方法。
-  /// * 但是如果在"GET","HEAD"请求中通过此方法返回了集合实例，则会覆盖由[onFillParams],[onPostFillParams]生成的参数。
+  /// * 但是如果在"GET","HEAD"请求中通过此方法返回了集合实例，则会覆盖由[onFillParams]生成的参数。
   @protected
-  FutureOr<Map<String, dynamic>?> onQueryParams() => null;
-
-  /// 后置填充请求所需的查询参数
-  ///
-  /// 返回结果为新的参数集合，默认返回[onQueryParams]的返回值
-  ///
-  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
-  /// 可以获取用户传递的自定义[WorkData.extra]值
-  ///
-  /// 在[onQueryParams]填充之后执行的填充方法，[params]为[onQueryParams]的返回值。
-  /// 此函数通常用于做参数签名或者追加填充[WorkData.extra]中传递的值。
-  @protected
-  FutureOr<Map<String, dynamic>?> onPostQueryParams(
-          T data, Map<String, dynamic>? params) =>
-      params;
+  FutureOr<Map<String, dynamic>?> onQueryParams(T data) => null;
 
   /// 网络请求执行前调用
   ///
@@ -290,6 +271,9 @@ mixin WorkLifeCycle<D, T extends WorkData<D>> {
 
   /// 最大重启次数
   ///
+  /// [data]为本次任务执行周期中的数据包装类，由[onCreateWorkData]创建，
+  /// 可以获取用户传递的自定义[WorkData.extra]值
+  ///
   /// 当[onSuccessful],[onFailed],[onCanceled],[onFinished]中有返回true时将丢弃本次结果重新执行[start]，
   /// 但是通常重启不能无限执行，除了逻辑中断外还可以在这里设置最大重启次数，本次数不包含首次执行。
   ///
@@ -297,7 +281,7 @@ mixin WorkLifeCycle<D, T extends WorkData<D>> {
   /// * `retry`参数仅表示最终网络请求的重试次数，重试期间不会执行其它work的生命周期函数。
   /// * 此处的重启表示work本身的重新启动，每次重启与首次执行[start]方法的参数和流程相同。
   @protected
-  int onMaxRestart() => 3;
+  int onMaxRestart(T data) => 3;
 
   /// 本次任务执行成功后调用
   ///

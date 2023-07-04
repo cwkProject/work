@@ -1,7 +1,5 @@
 // Created by 超悟空 on 2018/9/26.
 
-import 'dart:async';
-
 import 'package:meta/meta.dart';
 import 'package:work/work.dart';
 
@@ -24,10 +22,10 @@ import 'package:work/work.dart';
 /// ```
 class SimpleWorkData<T> extends WorkData<T> {
   /// 协议错误码
-  int _errorCode = 0;
+  int get errorCode => response?.data['errorCode'] ?? 0;
 
-  /// 协议错误码
-  int get errorCode => _errorCode;
+  /// 原始响应结果数据
+  dynamic get resultData => response?.data['result'];
 }
 
 /// 简化的[Work]类
@@ -50,33 +48,20 @@ class SimpleWorkData<T> extends WorkData<T> {
 ///
 /// ```
 abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
-  /// 用于获取响应json数据协议中"result"字段
-  static const String result = 'result';
-
   @override
   SimpleWorkData<D> onCreateWorkData() => SimpleWorkData<D>();
 
   @override
   FutureOr<D?> onRequestSuccessful(SimpleWorkData<D> data) {
-    if (data.response!.data[result] == null) {
+    if (data.resultData == null) {
       return onDefaultResult(data);
     } else {
-      return onExtractResult(data.response!.data[result], data);
+      return onExtractResult(data, data.resultData);
     }
   }
 
   @override
   bool onRequestResult(SimpleWorkData<D> data) => data.response!.data['state'];
-
-  @mustCallSuper
-  @override
-  FutureOr<D?> onRequestFailed(SimpleWorkData<D> data) {
-    if (data.response!.data['errorCode'] != null) {
-      data._errorCode = data.response!.data['errorCode']!;
-    }
-
-    return super.onRequestFailed(data);
-  }
 
   @override
   String? onRequestSuccessfulMessage(SimpleWorkData<D> data) =>
@@ -93,7 +78,7 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   /// * 返回装配后的本地数据对象
   /// * [data]为将要返回的数据包装类
   @protected
-  FutureOr<D?> onExtractResult(resultData, SimpleWorkData<D> data);
+  FutureOr<D?> onExtractResult(SimpleWorkData<D> data, dynamic resultData);
 
   /// 生成响应成功的默认结果数据
   ///

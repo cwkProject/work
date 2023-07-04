@@ -41,7 +41,7 @@ class SimpleGetWork extends BaseWork<String> {
   final int age;
 
   @override
-  Map<String, dynamic>? onFillParams() => {
+  FutureOr<dynamic> onFillParams(WorkData<String> data) => {
         'name': name,
         'age': age,
       };
@@ -51,7 +51,7 @@ class SimpleGetWork extends BaseWork<String> {
       data.response!.data['args'].toString();
 
   @override
-  String onUrl() => '/get';
+  String onUrl(WorkData<String> data) => '/get';
 }
 
 /// 简单的post form任务
@@ -63,10 +63,10 @@ class SimplePostFormWork extends BaseWork<String> {
   final int age;
 
   @override
-  HttpMethod onHttpMethod() => HttpMethod.post;
+  HttpMethod onHttpMethod(WorkData<String> data) => HttpMethod.post;
 
   @override
-  Map<String, dynamic>? onFillParams() => {
+  FutureOr<dynamic> onFillParams(WorkData<String> data) => {
         'name': name,
         'age': age,
       };
@@ -76,7 +76,7 @@ class SimplePostFormWork extends BaseWork<String> {
       data.response!.data['form'].toString();
 
   @override
-  String onUrl() => '/post';
+  String onUrl(WorkData<String> data) => '/post';
 }
 
 /// 简单的post json任务
@@ -88,13 +88,13 @@ class SimplePostJsonWork extends BaseWork<String> {
   final int age;
 
   @override
-  HttpMethod onHttpMethod() => HttpMethod.post;
+  HttpMethod onHttpMethod(WorkData<String> data) => HttpMethod.post;
 
   @override
-  String? onContentType() => 'application/json';
+  String? onContentType(WorkData<String> data) => 'application/json';
 
   @override
-  Map<String, dynamic>? onFillParams() => {
+  FutureOr<dynamic> onFillParams(WorkData<String> data) => {
         'name': name,
         'age': age,
       };
@@ -104,7 +104,7 @@ class SimplePostJsonWork extends BaseWork<String> {
       data.response!.data['json'].toString();
 
   @override
-  String onUrl() => '/post';
+  String onUrl(WorkData<String> data) => '/post';
 }
 
 /// 简单的put任务附加查询参数
@@ -116,18 +116,18 @@ class SimplePutWithQueryWork extends BaseWork<String> {
   final int age;
 
   @override
-  HttpMethod onHttpMethod() => HttpMethod.put;
+  HttpMethod onHttpMethod(WorkData<String> data) => HttpMethod.put;
 
   @override
-  String? onContentType() => 'application/json';
+  String? onContentType(WorkData<String> data) => 'application/json';
 
   @override
-  Map<String, dynamic>? onFillParams() => {
+  FutureOr<dynamic> onFillParams(WorkData<String> data) => {
         'name': name,
       };
 
   @override
-  FutureOr<Map<String, dynamic>?> onQueryParams() => {
+  FutureOr<Map<String, dynamic>?> onQueryParams(WorkData<String> data) => {
         'age': age,
       };
 
@@ -136,7 +136,7 @@ class SimplePutWithQueryWork extends BaseWork<String> {
       '${data.response!.data['json']}\n${data.response!.data['args']}';
 
   @override
-  String onUrl() => '/put';
+  String onUrl(WorkData<String> data) => '/put';
 }
 
 /// 简单的post json字符串任务
@@ -148,17 +148,13 @@ class SimplePostJsonStringWork extends BaseWork<String> {
   final int age;
 
   @override
-  HttpMethod onHttpMethod() => HttpMethod.post;
+  HttpMethod onHttpMethod(WorkData<String> data) => HttpMethod.post;
 
   @override
-  String? onContentType() => 'application/json';
+  String? onContentType(WorkData<String> data) => 'application/json';
 
   @override
-  Map<String, dynamic>? onFillParams() => null;
-
-  @override
-  dynamic onPostFillParams(
-          WorkData<String> data, Map<String, dynamic>? params) =>
+  FutureOr<dynamic> onFillParams(WorkData<String> data) =>
       json.encode({'name': name, 'age': age});
 
   @override
@@ -166,7 +162,7 @@ class SimplePostJsonStringWork extends BaseWork<String> {
       data.response!.data['json'].toString();
 
   @override
-  String onUrl() => '/post';
+  String onUrl(WorkData<String> data) => '/post';
 }
 
 /// 总是解析失败的任务
@@ -176,16 +172,13 @@ class SimpleParseFailedWork extends BaseWork<int> {
   final String content;
 
   @override
-  HttpMethod onHttpMethod() => HttpMethod.post;
+  HttpMethod onHttpMethod(WorkData<int> data) => HttpMethod.post;
 
   @override
-  String? onContentType() => 'application/json';
+  String? onContentType(WorkData<int> data) => 'application/json';
 
   @override
-  Map<String, dynamic>? onFillParams() => null;
-
-  @override
-  dynamic onPostFillParams(WorkData<int> data, Map<String, dynamic>? params) =>
+  FutureOr<dynamic> onFillParams(WorkData<int> data) =>
       json.encode({'content': content});
 
   @override
@@ -196,19 +189,19 @@ class SimpleParseFailedWork extends BaseWork<int> {
   String? onParseFailed(WorkData<int> data) => '数据解析错误';
 
   @override
-  String onUrl() => '/post';
+  String onUrl(WorkData<int> data) => '/post';
 }
 
 /// 总是返回500的任务
 class SimpleErrorWork extends BaseWork<void> {
   @override
-  Map<String, dynamic>? onFillParams() => null;
+  FutureOr<dynamic> onFillParams(WorkData<void> data) => null;
 
   @override
   void onRequestSuccessful(WorkData<void> data) => null;
 
   @override
-  String onUrl() => '/status/500';
+  String onUrl(WorkData<void> data) => '/status/500';
 }
 
 /// 总是业务失败的任务
@@ -217,13 +210,13 @@ class SimpleRequestFailedWork extends BaseWork<void> {
   bool onRequestResult(WorkData<void> data) => false;
 
   @override
-  Map<String, dynamic>? onFillParams() => null;
+  FutureOr<dynamic> onFillParams(WorkData<void> data) => null;
 
   @override
   void onRequestSuccessful(WorkData<void> data) => null;
 
   @override
-  String onUrl() => '/get';
+  String onUrl(WorkData<void> data) => '/get';
 }
 
 /// 简单的上传任务
@@ -237,13 +230,13 @@ class SimpleUploadWork extends BaseWork<void> {
   final String? mimeType;
 
   @override
-  HttpMethod onHttpMethod() => HttpMethod.post;
+  HttpMethod onHttpMethod(WorkData<void> data) => HttpMethod.post;
 
   @override
-  String? onContentType() => multipartFormData;
+  String? onContentType(WorkData<void> data) => multipartFormData;
 
   @override
-  Map<String, dynamic>? onFillParams() => {
+  FutureOr<dynamic> onFillParams(WorkData<void> data) => {
         'name': name,
         'file':
             UploadFileInfo.bytes(buffer, fileName: name, mimeType: mimeType),
@@ -257,7 +250,7 @@ class SimpleUploadWork extends BaseWork<void> {
   void onRequestSuccessful(WorkData<void> data) {}
 
   @override
-  String onUrl() => '/post';
+  String onUrl(WorkData<void> data) => '/post';
 }
 
 /// 简单的下载任务
@@ -281,17 +274,17 @@ class SimpleLoadWork extends Work<List<int>, WorkData<List<int>>> {
   String? onParseFailed(WorkData<List<int>> data) => '数据解析错误';
 
   @override
-  ResponseType? onResponseType() => ResponseType.bytes;
+  ResponseType? onResponseType(WorkData<List<int>> data) => ResponseType.bytes;
 
   @override
-  Map<String, dynamic>? onFillParams() => null;
+  FutureOr<dynamic> onFillParams(WorkData<List<int>> data) => null;
 
   @override
   List<int>? onRequestSuccessful(WorkData<List<int>> data) =>
       data.response!.data;
 
   @override
-  String onUrl() => '/image/webp';
+  String onUrl(WorkData<List<int>> data) => '/image/webp';
 }
 
 /// 简单的延迟任务
@@ -305,7 +298,7 @@ class DelayWork extends BaseWork<String> {
   final int delay;
 
   @override
-  Map<String, dynamic>? onFillParams() => {
+  FutureOr<dynamic> onFillParams(WorkData<String> data) => {
         'name': name,
         'age': age,
       };
@@ -315,7 +308,7 @@ class DelayWork extends BaseWork<String> {
       data.response!.data['args'].toString();
 
   @override
-  String onUrl() => '/delay/$delay';
+  String onUrl(WorkData<String> data) => '/delay/$delay';
 }
 
 /// 假设这是个本地缓存数据库
@@ -332,7 +325,7 @@ class CacheableWork extends BaseWork<String> {
   final int id;
 
   @override
-  Map<String, dynamic>? onFillParams() => {
+  FutureOr<dynamic> onFillParams(WorkData<String> data) => {
         'name': name,
         'age': age,
       };
@@ -342,7 +335,7 @@ class CacheableWork extends BaseWork<String> {
       data.response!.data['args'].toString();
 
   @override
-  String onUrl() => '/get';
+  String onUrl(WorkData<String> data) => '/get';
 
   @override
   FutureOr<bool> onHitCache(WorkData<String> data) {
@@ -375,7 +368,7 @@ class CacheableByFailedWork extends BaseWork<String> {
   final int id;
 
   @override
-  Map<String, dynamic>? onFillParams() => {
+  FutureOr<dynamic> onFillParams(WorkData<String> data) => {
         'name': name,
         'age': age,
       };
@@ -390,7 +383,7 @@ class CacheableByFailedWork extends BaseWork<String> {
       data.response!.data['args'].toString();
 
   @override
-  String onUrl() => '/get';
+  String onUrl(WorkData<String> data) => '/get';
 
   @override
   FutureOr<bool> onHitCache(WorkData<String> data) {
@@ -427,13 +420,13 @@ class RestartWork extends BaseWork<String> {
   final int age;
 
   @override
-  HttpMethod onHttpMethod() => HttpMethod.post;
+  HttpMethod onHttpMethod(WorkData<String> data) => HttpMethod.post;
 
   @override
-  String? onContentType() => 'application/json';
+  String? onContentType(WorkData<String> data) => 'application/json';
 
   @override
-  Map<String, dynamic>? onFillParams() => {
+  FutureOr<dynamic> onFillParams(WorkData<String> data) => {
         'name': name,
         'age': age,
       };
@@ -443,7 +436,7 @@ class RestartWork extends BaseWork<String> {
       data.response!.data['json'].toString();
 
   @override
-  String onUrl() => '/get';
+  String onUrl(WorkData<String> data) => '/get';
 
   @override
   FutureOr<void> onConfigOptions(

@@ -23,7 +23,14 @@ part 'work_life_cycle.dart';
 abstract class Work<D, T extends WorkData<D>> with WorkLifeCycle<D, T> {
   const Work();
 
-  @override
+  /// 启动任务
+  ///
+  /// 返回包含执行结果[T]的[WorkFuture]。
+  /// * [retry]为内部网络请求失败时的最大重试次数，0表示不重试，实际请求1次，1表示重试1次，实际最多请求两次，以此类推，
+  /// * [onSendProgress]为数据发送/上传进度监听器，在[HttpMethod.get]和[HttpMethod.head]中无效，
+  /// 以及设置了[WorkRequestOptions.downloadPath]的下载任务中无效，
+  /// * [onReceiveProgress]为数据接收/下载进度监听器，
+  /// * 多次调用会启动多次请求
   WorkFuture<D, T> start({
     int retry = 0,
     OnProgress? onSendProgress,
@@ -57,7 +64,7 @@ abstract class Work<D, T extends WorkData<D>> with WorkLifeCycle<D, T> {
           break;
         }
         extra = data.extra;
-      } while (restart++ < onMaxRestart());
+      } while (restart++ < onMaxRestart(data));
 
       future._complete(data);
     }
@@ -191,49 +198,31 @@ abstract class Work<D, T extends WorkData<D>> with WorkLifeCycle<D, T> {
   Future<WorkRequestOptions> _onCreateOptions(
       T data, OnProgress? onSendProgress, OnProgress? onReceiveProgress) async {
     final options = WorkRequestOptions();
-    Map<String, dynamic>? params;
 
-    var futureParams = onFillParams();
-    if (futureParams is Future<Map<String, dynamic>?>) {
-      params = await futureParams;
+    final fillParams = onFillParams(data);
+    if (fillParams is Future<dynamic>) {
+      options.params = await fillParams;
     } else {
-      params = futureParams;
+      options.params = fillParams;
     }
 
-    final postFillParams = onPostFillParams(data, params);
-
-    if (postFillParams is Future<dynamic>) {
-      options.params = await postFillParams ?? params;
+    final queryParams = onQueryParams(data);
+    if (queryParams is Future<Map<String, dynamic>?>) {
+      options.queryParams = await queryParams;
     } else {
-      options.params = postFillParams ?? params;
-    }
-
-    futureParams = onQueryParams();
-
-    if (futureParams is Future<Map<String, dynamic>?>) {
-      options.queryParams = await futureParams;
-    } else {
-      options.queryParams = futureParams;
-    }
-
-    futureParams = onPostQueryParams(data, options.queryParams);
-
-    if (futureParams is Future<Map<String, dynamic>?>) {
-      options.queryParams = await futureParams;
-    } else {
-      options.queryParams = futureParams;
+      options.queryParams = queryParams;
     }
 
     options
       ..onSendProgress = onSendProgress
       ..onReceiveProgress = onReceiveProgress
-      ..dioOptions.method = onHttpMethod().name
-      ..configKey = onConfigKey()
-      ..dioOptions.contentType = onContentType()
-      ..dioOptions.responseType = onResponseType()
-      ..url = onUrl();
+      ..dioOptions.method = onHttpMethod(data).name
+      ..configKey = onConfigKey(data)
+      ..dioOptions.contentType = onContentType(data)
+      ..dioOptions.responseType = onResponseType(data)
+      ..url = onUrl(data);
 
-    final headers = onHeaders();
+    final headers = onHeaders(data);
     if (headers is Future<Map<String, dynamic>?>) {
       options.dioOptions.headers = await headers;
     } else {

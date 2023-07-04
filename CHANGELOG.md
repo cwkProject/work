@@ -1,3 +1,10 @@
+## [6.0.0] - 2023/7/4
+
+* BREAKING:全生命周期增加`WorkData`参数
+* BREAKING:移除`onPostFillParams`方法，智能由`onFillParams`完成
+* BREAKING:修改`onFillParams`签名，返回值为任意类型，可满足原`onPostFillParams`方法的作用
+* BREAKING:移除`onPostQueryParams`方法
+
 ## [5.1.1] - 2023/6/16
 
 * 将`DioErrorType.unknown`也归类为网络错误

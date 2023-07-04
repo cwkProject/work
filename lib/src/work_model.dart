@@ -68,8 +68,7 @@ class WorkRequestOptions {
   /// 或者是带有请求body的方法中使用“application/x-www-form-urlencoded”或"application/json"，
   /// [multipartFormData]等与[Map]兼容的键值对或表单格式。
   ///
-  /// 此外可以在[Work.onPostFillParams]中覆盖参数，
-  /// 支持多种格式，通常有[Map]，[String]，[Stream]等，需要与[Options.contentType]匹配，
+  /// 支持多种格式，通常有[Map]，[String]，[List]，[Stream]等，需要与[Options.contentType]匹配，
   /// 同样可以使用自行拼装的[FormData]数据
   dynamic params;
 

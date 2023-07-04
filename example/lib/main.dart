@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:work/work.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:work/work.dart';
 
 import 'simple_work.dart';
 
@@ -41,13 +41,16 @@ class TestWork extends SimpleWork<String> {
   final String param1;
 
   @override
-  String onExtractResult(resultData, data) => resultData['account'];
+  FutureOr<String> onExtractResult(
+          SimpleWorkData<String> data, dynamic resultData) =>
+      resultData['account'];
 
   @override
-  String onUrl() => 'https://api.example.com/test';
+  String onUrl(SimpleWorkData<String> data) => 'https://api.example.com/test';
 
   @override
-  Map<String, dynamic> onFillParams() => {'param1': param1};
+  FutureOr<dynamic> onFillParams(SimpleWorkData<String> data) =>
+      {'param1': param1};
 
   @override
   String onNetworkError(data) => '网络连接失败，当前网络不可用';
@@ -63,7 +66,8 @@ class TestWork extends SimpleWork<String> {
       data.response!.data['message'] ?? '操作失败';
 
   @override
-  String onRequestSuccessfulMessage(data) => data.response!.data['message'] ?? '';
+  String onRequestSuccessfulMessage(data) =>
+      data.response!.data['message'] ?? '';
 }
 
 @JsonSerializable()
@@ -81,13 +85,14 @@ class DownloadWork extends SimpleDownloadWork {
   final int resNo;
 
   @override
-  Map<String, dynamic> onFillParams() => _$DownloadWorkToJson(this);
+  FutureOr<dynamic> onFillParams(SimpleWorkData<void> data) =>
+      _$DownloadWorkToJson(this);
 
   @override
   String onDownloadPath() => path;
 
   @override
-  String onUrl() => 'https://api.example.com/test.jpg';
+  String onUrl(SimpleWorkData<void> data) => 'https://api.example.com/test.jpg';
 }
 
 @JsonSerializable()
@@ -100,11 +105,14 @@ class UploadWork extends SimpleWork<String> {
 
   /// 假设返回的结果"result"标签对应的是文件的网络地址
   @override
-  String onExtractResult(resultData, data) => resultData;
+  FutureOr<String> onExtractResult(
+          SimpleWorkData<String> data, dynamic resultData) =>
+      resultData;
 
   @override
-  String onUrl() => 'https://api.example.com/upload';
+  String onUrl(SimpleWorkData<String> data) => 'https://api.example.com/upload';
 
   @override
-  Map<String, dynamic> onFillParams() => _$UploadWorkToJson(this);
+  FutureOr<dynamic> onFillParams(SimpleWorkData<String> data) =>
+      _$UploadWorkToJson(this);
 }

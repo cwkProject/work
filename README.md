@@ -12,7 +12,7 @@
 ## Install
 
 ```yaml
-work: ^5.1.1
+work: ^6.0.0
 ```
 
 ## 实现公司http规范基类
@@ -38,10 +38,10 @@ work: ^5.1.1
 
 class SimpleWorkData<T> extends WorkData<T> {
   /// 协议错误码
-  int _errorCode = 0;
+  int get errorCode => response?.data['errorCode'] ?? 0;
 
-  /// 协议错误码
-  int get errorCode => _errorCode;
+  /// 原始响应结果数据
+  dynamic get resultData => response?.data['result'];
 }
 
 ```
@@ -51,33 +51,20 @@ class SimpleWorkData<T> extends WorkData<T> {
 ```SimpleWork
 
 abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
-  /// 用于获取响应json数据协议中"result"字段
-  static const String result = 'result';
-
   @override
   SimpleWorkData<D> onCreateWorkData() => SimpleWorkData<D>();
 
   @override
   FutureOr<D?> onRequestSuccessful(SimpleWorkData<D> data) {
-    if (data.response!.data[result] == null) {
+    if (data.resultData == null) {
       return onDefaultResult(data);
     } else {
-      return onExtractResult(data.response!.data[result], data);
+      return onExtractResult(data, data.resultData);
     }
   }
 
   @override
   bool onRequestResult(SimpleWorkData<D> data) => data.response!.data['state'];
-
-  @mustCallSuper
-  @override
-  FutureOr<D?> onRequestFailed(SimpleWorkData<D> data) {
-    if (data.response!.data['errorCode'] != null) {
-      data._errorCode = data.response!.data['errorCode']!;
-    }
-
-    return super.onRequestFailed(data);
-  }
 
   @override
   String? onRequestSuccessfulMessage(SimpleWorkData<D> data) =>
@@ -94,7 +81,7 @@ abstract class SimpleWork<D> extends Work<D, SimpleWorkData<D>> {
   /// * 返回装配后的本地数据对象
   /// * [data]为将要返回的数据包装类
   @protected
-  FutureOr<D?> onExtractResult(resultData, SimpleWorkData<D> data);
+  FutureOr<D?> onExtractResult(SimpleWorkData<D> data, dynamic resultData);
 
   /// 生成响应成功的默认结果数据
   ///
@@ -130,17 +117,17 @@ class LoginWork extends SimpleWork<User> {
   
   /// 解析响应数据
   @override
-  User onExtractResult(resultData,SimpleWorkData<User> data) => User.fromJson(resultData);
+  FutureOr<User> onExtractResult(SimpleWorkData<User> data, dynamic resultData) => User.fromJson(resultData);
 
   /// 装配请求参数
   /// 
   /// 返回发送的参数集合，可以和[json_serializable]库配合使用，也可以简单的直接拼装
   @override
-  Map<String, dynamic> onFillParams() => _$LoginWorkToJson(this);
+  FutureOr<dynamic> onFillParams(SimpleWorkData<User> data) => _$LoginWorkToJson(this);
 
   // 不使用序列化库，直接拼接
   // @override
-  // Map<String, dynamic> onFillParams() => {
+  // FutureOr<dynamic> onFillParams(SimpleWorkData<User> data) => {
   //  'username': username,
   //  'password': password,
   //  'device': device,
