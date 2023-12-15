@@ -108,11 +108,9 @@ extension ResponseConvert on Response {
     }
 
     return HttpResponse(
+      dioResponse: this,
       success: success,
-      statusCode: statusCode ?? 0,
-      headers: headers.map,
       data: workData,
-      realUri: realUri,
     );
   }
 }

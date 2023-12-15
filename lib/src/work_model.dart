@@ -108,40 +108,46 @@ queryParams: $queryParams''';
 /// 实际的Http响应数据
 class HttpResponse {
   HttpResponse({
+    required this.dioResponse,
     this.success = false,
     this.data,
-    this.headers,
-    this.statusCode = 0,
-    required this.realUri,
   });
+
+  /// 原始dio响应数据
+  final Response dioResponse;
+
+  /// 请求成功失败标志
+  final bool success;
 
   /// 响应数据
   ///
   /// 通常数据类型由[Options.ResponseType]决定
   final dynamic data;
 
+  /// 请求头信息
+  Map<String, dynamic> get requestHeaders => dioResponse.requestOptions.headers;
+
   /// 响应头信息
-  final Map<String, List<String>>? headers;
+  Map<String, List<String>> get headers => dioResponse.headers.map;
 
   /// 响应状态码
-  final int statusCode;
-
-  /// 请求成功失败标志
-  final bool success;
+  int get statusCode => dioResponse.statusCode ?? 0;
 
   /// 最终请求的地址
   ///
   /// 可能是重定向后的地址
-  final Uri realUri;
+  Uri get realUri => dioResponse.realUri;
 
   /// 将头信息转换成文本输出
   String get _headersToString {
     final stringBuffer = StringBuffer();
-    headers?.forEach((key, value) {
+    stringBuffer.writeln('{');
+    headers.forEach((key, value) {
       for (var e in value) {
         stringBuffer.writeln('$key: $e');
       }
     });
+    stringBuffer.write('}');
     return stringBuffer.toString();
   }
 
@@ -152,6 +158,7 @@ class HttpResponse {
   @override
   String toString() => '''response 
 realUri: $realUri
+request headers: $requestHeaders
 success: $success; code: $statusCode
 headers: $_headersToString
 body: $_bodyToString''';

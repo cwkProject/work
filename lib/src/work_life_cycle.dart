@@ -6,7 +6,9 @@ part of 'work_core.dart';
 ///
 /// [D]为关联的接口结果数据类型，[T]为接口响应包装类型[WorkData]
 @immutable
-mixin WorkLifeCycle<D, T extends WorkData<D>> {
+abstract class WorkLifeCycle<D, T extends WorkData<D>> {
+  const WorkLifeCycle();
+
   /// 创建数据模型对象的实例
   @protected
   T onCreateWorkData();

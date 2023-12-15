@@ -6,7 +6,11 @@ part of 'work_core.dart';
 ///
 /// 包含响应的全部数据，[T]类型的业务数据实例，[success]表示成功失败，
 /// [message]服务响应的消息，http响应[response]，任务正真有用的数据对象[result]。
-class WorkData<T> {
+abstract class WorkData<T> {
+  WorkData();
+
+  factory WorkData.create() => _WorkData();
+
   /// 本次任务成功失败标志
   bool _success = false;
 
@@ -84,6 +88,9 @@ class WorkData<T> {
   dynamic extra;
 }
 
+/// [WorkData]实现类
+class _WorkData<T> extends WorkData<T> {}
+
 /// 任务执行专用[Future]，提供了取消功能
 ///
 /// [D]为关联的接口结果数据类型，[T]为接口响应包装类型[WorkData]
@@ -145,14 +152,14 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
   /// 仅当[Work]成功时，即[WorkData.success]为true时才执行[onValue]
   ///
   /// [WorkData.success]为false时返回null
-  Future<R?> thenSuccessful<R>(FutureOr<R> Function(T value) onValue) =>
+  Future<R?> thenSuccessful<R>(FutureOr<R?> Function(T value) onValue) =>
       _completer.future
           .then((value) => value.success ? onValue(value) : Future.value());
 
   /// 仅当[Work]失败时，即[WorkData.success]为false时才执行[onValue]
   ///
   /// [WorkData.success]为true时返回null
-  Future<R?> thenFailed<R>(FutureOr<R> Function(T value) onValue) =>
+  Future<R?> thenFailed<R>(FutureOr<R?> Function(T value) onValue) =>
       _completer.future
           .then((value) => !value.success ? onValue(value) : Future.value());
 
@@ -160,20 +167,20 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
   /// 它会等待[Work.start]完成后执行[onValue]参数为[WorkData.result]。
   ///
   /// 无论[Work]成功或失败都会执行[onValue]
-  Future<R?> thenResult<R>(FutureOr<R> Function(D? value) onValue) =>
+  Future<R?> thenResult<R>(FutureOr<R?> Function(D? value) onValue) =>
       _completer.future.then((value) => onValue(value.result));
 
   /// 获取结果或抛出异常
   ///
   /// 如果任务执行成功即[WorkData.success]为true时，返回[WorkData.result]的未来。
-  /// 如果任务执行失败即[WorkData.success]为false时，则抛出异常[WorkError]。
+  /// 如果任务执行失败即[WorkData.success]为false时，则抛出异常[WorkException]。
   ///
   /// [onDo]为任务执行成功即[WorkData.success]为true时，可选的执行函数，
   /// 参数为[WorkData.result]此函数的执行不会修改方法最终返回的值。
   Future<D?> resultOrThrow([FutureOr<void> Function(D? value)? onDo]) =>
       _completer.future.then((value) {
         if (!value.success) {
-          return Future.error(WorkError._(
+          return Future.error(WorkException._(
               _tag, value.errorType ?? WorkErrorType.other, value.message));
         }
 
@@ -215,16 +222,16 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
   /// 获取非空结果或抛出异常
   ///
   /// 如果任务执行成功即[WorkData.success]为true时，返回[WorkData.result]的非空未来。
-  /// 如果任务执行失败即[WorkData.success]为false时，则抛出异常[WorkError]。
+  /// 如果任务执行失败即[WorkData.success]为false时，则抛出异常[WorkException]。
   ///
   /// [onDo]为任务执行成功即[WorkData.success]为true时，可选的执行函数，
   /// 参数为[WorkData.result]此函数的执行不会修改方法最终返回的值。
   ///
-  /// 如果[WorkData.result]为null则会抛出异常[WorkError]
+  /// 如果[WorkData.result]为null则会抛出异常[WorkException]
   Future<D> requiredResultOrThrow([FutureOr<void> Function(D value)? onDo]) =>
       _completer.future.then((value) {
         if (!value.success) {
-          return Future.error(WorkError._(
+          return Future.error(WorkException._(
               _tag, value.errorType ?? WorkErrorType.other, value.message));
         }
 
@@ -232,7 +239,7 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
 
         if (result == null) {
           return Future.error(
-              WorkError._(_tag, WorkErrorType.noResult, 'empty result'));
+              WorkException._(_tag, WorkErrorType.noResult, 'empty result'));
         }
 
         if (onDo != null) {
@@ -254,7 +261,7 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
   /// [onDo]为任务执行成功即[WorkData.success]为true时，可选的执行函数，
   /// 参数为[WorkData.result]此函数的执行不会修改方法最终返回的值。
   ///
-  /// 如果[WorkData.result]为null则会抛出异常[WorkError]
+  /// 如果[WorkData.result]为null则会抛出异常[WorkException]
   Future<D> requiredResultOrThrowMessage(
           [FutureOr<void> Function(D value)? onDo]) =>
       _completer.future.then((value) {
@@ -265,8 +272,7 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
         final result = value.result;
 
         if (result == null) {
-          return Future.error(
-              WorkError._(_tag, WorkErrorType.noResult, 'empty result'));
+          return Future.error('empty result');
         }
 
         if (onDo != null) {
@@ -295,8 +301,9 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
 }
 
 /// 任务的异常类型
-class WorkError implements Exception {
-  WorkError._(this._tag, this.type, [this.message, this.origin, this.stack]);
+class WorkException implements Exception {
+  WorkException._(this._tag, this.type,
+      [this.message, this.origin, this.stack]);
 
   /// 任务标识
   final String _tag;
@@ -315,7 +322,7 @@ class WorkError implements Exception {
 
   @override
   String toString() {
-    final msg = StringBuffer('WorkError [$_tag - $type] :$message');
+    final msg = StringBuffer('WorkException [$_tag - $type] :$message');
     if (origin != null) {
       msg.writeln();
       msg.writeln('$origin');
@@ -330,17 +337,22 @@ class WorkError implements Exception {
   }
 }
 
-/// dio最终请求选项的包装类
+/// dio最终请求响应选项的包装类
 ///
 /// 主要用于打印日志
 class _FinalRequestOptions {
-  _FinalRequestOptions(this.requestOptions);
+  _FinalRequestOptions(this.requestOptions, this.response);
 
   /// dio的最终请求选项
   final RequestOptions requestOptions;
 
+  /// 可能的响应
+  final HttpResponse? response;
+
   @override
   String toString() {
-    return '${requestOptions.uri}';
+    return response != null
+        ? response.toString()
+        : 'realUri: ${requestOptions.uri}';
   }
 }

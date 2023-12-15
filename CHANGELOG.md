@@ -1,3 +1,10 @@
+## [6.0.1] - 2023/12/15
+
+* BREAKING:`WorkError`改名为`WorkException`
+* BREAKING:`WorkData`改为抽象类，增加`create`工厂方法用于创建默认实例
+* 优化日志输出
+* 修复一些小问题
+
 ## [6.0.0] - 2023/7/4
 
 * BREAKING:全生命周期增加`WorkData`参数

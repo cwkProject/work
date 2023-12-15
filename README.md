@@ -12,7 +12,7 @@
 ## Install
 
 ```yaml
-work: ^6.0.0
+work: ^6.0.1
 ```
 
 ## 实现公司http规范基类

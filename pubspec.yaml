@@ -1,16 +1,16 @@
 name: work
 description: Encapsulate http business interface protocol, provide limited extension functions, isolate the underlying implementation method of http (currently based on dio).
 
-version: 6.0.0
+version: 6.0.1
 
 homepage: https://github.com/cwkProject/work
 
 environment:
-  sdk: ">=2.17.0 <3.0.0"
+  sdk: ">=2.17.0 <4.0.0"
 
 dependencies:
   meta: ^1.8.0
-  dio: ^5.1.1
+  dio: ^5.4.0
   mime: ^1.0.3
   http_parser: ^4.0.2
   path: ^1.8.2

@@ -9,7 +9,7 @@ abstract class BaseWork<D> extends Work<D, WorkData<D>> {
   const BaseWork();
 
   @override
-  WorkData<D> onCreateWorkData() => WorkData<D>();
+  WorkData<D> onCreateWorkData() => WorkData<D>.create();
 
   @override
   bool onRequestResult(WorkData<D> data) =>
@@ -256,7 +256,7 @@ class SimpleUploadWork extends BaseWork<void> {
 /// 简单的下载任务
 class SimpleLoadWork extends Work<List<int>, WorkData<List<int>>> {
   @override
-  WorkData<List<int>> onCreateWorkData() => WorkData<List<int>>();
+  WorkData<List<int>> onCreateWorkData() => WorkData<List<int>>.create();
 
   @override
   bool onRequestResult(WorkData<List<int>> data) => true;

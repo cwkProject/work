@@ -20,7 +20,7 @@ part 'work_life_cycle.dart';
 ///
 /// [D]为关联的接口结果数据类型，[T]为接口响应包装类型[WorkData]
 @optionalTypeArgs
-abstract class Work<D, T extends WorkData<D>> with WorkLifeCycle<D, T> {
+abstract class Work<D, T extends WorkData<D>> extends WorkLifeCycle<D, T> {
   const Work();
 
   /// 启动任务
@@ -106,7 +106,7 @@ abstract class Work<D, T extends WorkData<D>> with WorkLifeCycle<D, T> {
       data._success = false;
 
       dynamic error;
-      if (e is WorkError) {
+      if (e is WorkException) {
         data
           .._errorType = e.type
           .._message = e.message;
@@ -158,7 +158,7 @@ abstract class Work<D, T extends WorkData<D>> with WorkLifeCycle<D, T> {
     final checkResult = (check is Future<bool>) ? await check : check;
     if (!checkResult) {
       log(tag, 'onParamsError');
-      throw WorkError._(tag, WorkErrorType.params, onParamsError(data));
+      throw WorkException._(tag, WorkErrorType.params, onParamsError(data));
     }
 
     log(tag, 'onStarted');
@@ -273,7 +273,6 @@ abstract class Work<D, T extends WorkData<D>> with WorkLifeCycle<D, T> {
         final response = await call();
         httpResponse = response.toHttpResponse();
         log(tag, 'request use ${Timeline.now - startTime}μs');
-        log(tag, 'final url:', _FinalRequestOptions(response.requestOptions));
         log(tag, 'http', httpResponse);
         break;
       } on DioError catch (e) {
@@ -281,7 +280,7 @@ abstract class Work<D, T extends WorkData<D>> with WorkLifeCycle<D, T> {
         log(tag, 'http error', e.type);
 
         if (e.type == DioErrorType.cancel) {
-          throw WorkError._(tag, WorkErrorType.cancel);
+          throw WorkException._(tag, WorkErrorType.cancel);
         }
 
         if (i < retry) {
@@ -294,24 +293,24 @@ abstract class Work<D, T extends WorkData<D>> with WorkLifeCycle<D, T> {
           .._response = e.response?.toHttpResponse()
           .._errorType = errorType;
 
-        log(tag, 'final url:', _FinalRequestOptions(e.requestOptions));
-        log(tag, 'http', data.response);
+        log(tag, 'http', _FinalRequestOptions(e.requestOptions, data.response));
 
         if (e.type == DioErrorType.badResponse) {
           // 网络请求失败
           log(tag, 'onNetworkRequestFailed');
-          throw WorkError._(tag, errorType, onNetworkRequestFailed(data), e);
+          throw WorkException._(
+              tag, errorType, onNetworkRequestFailed(data), e);
         } else {
           // 网络连接失败
           log(tag, 'onNetworkError');
-          throw WorkError._(tag, errorType, onNetworkError(data), e);
+          throw WorkException._(tag, errorType, onNetworkError(data), e);
         }
-      } on WorkError catch (_) {
+      } on WorkException catch (_) {
         rethrow;
       } catch (e, stack) {
         log(tag, 'http other error');
         log(tag, 'onParamsError');
-        throw WorkError._(
+        throw WorkException._(
             tag, WorkErrorType.params, onParamsError(data), e, stack);
       }
     } while (true);
@@ -351,15 +350,15 @@ abstract class Work<D, T extends WorkData<D>> with WorkLifeCycle<D, T> {
 
         // 提取服务返回的消息
         log(tag, 'onRequestFailedMessage');
-        throw WorkError._(
+        throw WorkException._(
             tag, WorkErrorType.task, onRequestFailedMessage(data));
       }
-    } on WorkError catch (_) {
+    } on WorkException catch (_) {
       rethrow;
     } catch (e, stack) {
       // 解析失败
       log(tag, 'onParseFailed');
-      throw WorkError._(
+      throw WorkException._(
           tag, WorkErrorType.parse, onParseFailed(data), e, stack);
     }
   }
