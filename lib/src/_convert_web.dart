@@ -11,8 +11,8 @@ import 'work_model.dart';
 Future<FormData> convertToDio(Map<String, dynamic> src) async {
   Future<dynamic> onConvert(dynamic value) async {
     if (value is UploadFileInfo) {
-      return MultipartFile(
-        value.stream!,
+      return MultipartFile.fromStream(
+        () => value.stream!,
         value.length!,
         filename: value.fileName,
         contentType:

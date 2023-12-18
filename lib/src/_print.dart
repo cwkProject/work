@@ -19,6 +19,7 @@ void logImp(String tag, String? message, [Object? data]) {
   final finalMessage = '$message ${data ?? ''}';
 
   for (final it in _wrap(finalMessage)) {
+    // ignore: avoid_print
     print('$tag: $it');
   }
 }

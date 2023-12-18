@@ -18,8 +18,8 @@ Future<FormData> convertToDio(Map<String, dynamic> src) async {
 
     if (value is UploadFileInfo) {
       if (value.stream != null) {
-        return MultipartFile(
-          value.stream!,
+        return MultipartFile.fromStream(
+          () => value.stream!,
           value.length!,
           filename: value.fileName,
           contentType:

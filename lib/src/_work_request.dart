@@ -62,25 +62,25 @@ Future<HttpCall> workRequest(String tag, WorkRequestOptions options) async {
 }
 
 /// dio异常类型扩展
-extension DioErrorConvert on DioErrorType {
+extension DioErrorConvert on DioExceptionType {
   /// 转换dio异常类型到work库异常类型
   WorkErrorType toWorkErrorType() {
     switch (this) {
-      case DioErrorType.connectionTimeout:
+      case DioExceptionType.connectionTimeout:
         return WorkErrorType.connectionTimeout;
-      case DioErrorType.sendTimeout:
+      case DioExceptionType.sendTimeout:
         return WorkErrorType.sendTimeout;
-      case DioErrorType.receiveTimeout:
+      case DioExceptionType.receiveTimeout:
         return WorkErrorType.receiveTimeout;
-      case DioErrorType.badResponse:
+      case DioExceptionType.badResponse:
         return WorkErrorType.response;
-      case DioErrorType.cancel:
+      case DioExceptionType.cancel:
         return WorkErrorType.cancel;
-      case DioErrorType.badCertificate:
+      case DioExceptionType.badCertificate:
         return WorkErrorType.certificate;
-      case DioErrorType.connectionError:
+      case DioExceptionType.connectionError:
         return WorkErrorType.connection;
-      case DioErrorType.unknown:
+      case DioExceptionType.unknown:
         return WorkErrorType.other;
     }
   }
