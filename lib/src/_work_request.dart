@@ -6,17 +6,21 @@ import 'package:dio/dio.dart';
 
 import '_convert.dart'
 // ignore: uri_does_not_exist
-    if (dart.library.html) '_convert_web.dart'
+    if (dart.library.js_interop) '_convert_web.dart'
 // ignore: uri_does_not_exist
     if (dart.library.io) '_convert_native.dart';
-import 'work_config.dart';
 import 'work_model.dart';
+
+/// Http执行器，每次调用都应该发起独立的新http请求并返回dio[Response]
+///
+/// 由[WorkRequest]生成，最终调用由框架负责
+/// 请求中的异常请正常抛出
+typedef HttpCall = Future<Response> Function();
 
 /// 执行网络请求
 ///
 /// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回响应数据
-Future<HttpCall> workRequest(String tag, WorkRequestOptions options) async {
-  final client = (workConfigs[options.configKey] ?? workConfig).dio;
+HttpCall workRequest(String tag, Dio client, WorkRequestOptions options) {
   final dioOptions = options.dioOptions;
 
   Map<String, dynamic>? queryParameters = options.queryParams;
@@ -31,17 +35,17 @@ Future<HttpCall> workRequest(String tag, WorkRequestOptions options) async {
       }
       break;
     default:
-      final isFormData =
-          (dioOptions.contentType ?? client.options.contentType) ==
-              multipartFormData;
+      final isFormData = (dioOptions.contentType ?? client.options.contentType)
+              ?.startsWith(Headers.multipartFormDataContentType) ??
+          false;
       data = isFormData && options.params is Map<String, dynamic>
-          ? await convertToDio(options.params)
+          ? convertToDio(options.params)
           : options.params;
       break;
   }
 
-  return () => options.downloadPath != null
-      ? client.download(
+  if (options.downloadPath != null) {
+    return () => client.download(
           options.url,
           options.downloadPath,
           data: data,
@@ -49,8 +53,9 @@ Future<HttpCall> workRequest(String tag, WorkRequestOptions options) async {
           cancelToken: options.cancelToken,
           options: dioOptions,
           onReceiveProgress: options.onReceiveProgress,
-        )
-      : client.request(
+        );
+  } else {
+    return () => client.request(
           options.url,
           data: data,
           queryParameters: queryParameters,
@@ -59,6 +64,7 @@ Future<HttpCall> workRequest(String tag, WorkRequestOptions options) async {
           onSendProgress: options.onSendProgress,
           onReceiveProgress: options.onReceiveProgress,
         );
+  }
 }
 
 /// dio异常类型扩展

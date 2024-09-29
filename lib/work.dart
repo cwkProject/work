@@ -1,4 +1,4 @@
-library work;
+library;
 
 export 'src/work_core.dart';
 export 'src/work_config.dart';

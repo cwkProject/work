@@ -3,11 +3,21 @@ import 'dart:io';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:work/work.dart';
 
-import 'simple_work.dart';
-
 part 'main.g.dart';
 
 void main() async {
+  workConfig = WorkConfig(
+    dio: Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 30),
+        sendTimeout: const Duration(seconds: 30),
+        contentType: 'application/x-www-form-urlencoded',
+      ),
+    ),
+    delegate: WorkDelegateImp(),
+  );
+
   final data = await TestWork('xxx').start();
 
   if (data.success) {
@@ -34,23 +44,50 @@ void main() async {
   }
 }
 
-class TestWork extends SimpleWork<String> {
-  TestWork(this.param1);
+/// 简化的[WorkData]类实现
+///
+/// 使用特定的公司接口协议描述。
+///
+/// ``` http协议
+/// 所有接口响应数据格式
+///
+/// json结构
+///
+/// {
+/// "errorCode":0, // 错误码，成功时返回0
+/// "message":null, // 业务消息字符串，可以是成功时用于显示的信息，也可以是失败时的提示信息
+/// "result": {}  // 真正响应的有效业务数据，任意类型
+/// }
+///
+/// ```
+extension WorkDataExtension<T> on WorkData<T> {
+  /// 协议错误码
+  int get errorCode => response?.data['errorCode'] ?? 0;
 
-  /// 请求参数1
-  final String param1;
+  /// 原始响应结果数据
+  dynamic get resultData => response?.data['result'];
+}
+
+/// 实现通用处理
+///
+/// ``` http协议
+/// 所有接口响应数据格式
+///
+/// json结构
+///
+/// {
+/// "errorCode":0, // 错误码
+/// "message":null, // 业务消息字符串，可以是成功时用于显示的信息，也可以是失败时的提示信息
+/// "result": {}  // 真正响应的有效业务数据，任意类型
+/// }
+///
+/// ```
+class WorkDelegateImp extends WorkDelegate {
+  @override
+  bool onRequestResult(WorkData data) => data.errorCode == 0;
 
   @override
-  FutureOr<String> onExtractResult(
-          SimpleWorkData<String> data, dynamic resultData) =>
-      resultData['account'];
-
-  @override
-  String onUrl(SimpleWorkData<String> data) => 'https://api.example.com/test';
-
-  @override
-  FutureOr<dynamic> onFillParams(SimpleWorkData<String> data) =>
-      {'param1': param1};
+  String? onParamsError(WorkData data) => '参数不合法';
 
   @override
   String onNetworkError(data) => '网络连接失败，当前网络不可用';
@@ -67,15 +104,39 @@ class TestWork extends SimpleWork<String> {
 
   @override
   String onRequestSuccessfulMessage(data) =>
-      data.response!.data['message'] ?? '';
+      data.response!.data['message'] ?? '操作成功';
+}
+
+class TestWork extends Work<String> {
+  const TestWork(this.param1);
+
+  /// 请求参数1
+  final String param1;
+
+  @override
+  FutureOr<dynamic> onFillParams(WorkData<String> data) => {
+        'param1': param1,
+      };
+
+  @override
+  FutureOr<String?> onRequestSuccessful(WorkData<String> data) {
+    return data.resultData['account'];
+  }
+
+  @override
+  String onUrl(WorkData<String> data) => 'https://api.example.com/test';
 }
 
 @JsonSerializable()
-class DownloadWork extends SimpleDownloadWork {
-  DownloadWork({required this.path, required this.key, required this.resNo});
+class DownloadWork extends Work<void> {
+  const DownloadWork({
+    required this.path,
+    required this.key,
+    required this.resNo,
+  });
 
   /// 存放路径
-  @JsonKey(ignore: true)
+  @JsonKey(includeToJson: false)
   final String path;
 
   /// 请求参数key
@@ -85,34 +146,44 @@ class DownloadWork extends SimpleDownloadWork {
   final int resNo;
 
   @override
-  FutureOr<dynamic> onFillParams(SimpleWorkData<void> data) =>
+  FutureOr<dynamic> onFillParams(WorkData<void> data) =>
       _$DownloadWorkToJson(this);
 
   @override
-  String onDownloadPath() => path;
+  FutureOr<void> onRequestSuccessful(WorkData<void> data) {}
 
   @override
-  String onUrl(SimpleWorkData<void> data) => 'https://api.example.com/test.jpg';
+  FutureOr<void> onPostOptions(WorkData<void> data) {
+    data.options!.downloadPath = path;
+  }
+
+  @override
+  String onRequestFailedMessage(data) => '下载失败';
+
+  @override
+  String onRequestSuccessfulMessage(data) => '下载成功';
+
+  @override
+  String onUrl(WorkData<void> data) => 'https://api.example.com/test.jpg';
 }
 
 @JsonSerializable()
-class UploadWork extends SimpleWork<String> {
-  UploadWork(this.file);
+class UploadWork extends Work<String> {
+  const UploadWork(this.file);
 
   /// 需要上传的文件
   @JsonKey(toJson: workFileToJsonConvert)
   final File file;
 
-  /// 假设返回的结果"result"标签对应的是文件的网络地址
   @override
-  FutureOr<String> onExtractResult(
-          SimpleWorkData<String> data, dynamic resultData) =>
-      resultData;
-
-  @override
-  String onUrl(SimpleWorkData<String> data) => 'https://api.example.com/upload';
-
-  @override
-  FutureOr<dynamic> onFillParams(SimpleWorkData<String> data) =>
+  FutureOr<dynamic> onFillParams(WorkData<String> data) =>
       _$UploadWorkToJson(this);
+
+  @override
+  FutureOr<String?> onRequestSuccessful(WorkData<String> data) {
+    return data.resultData; // 假设返回的是文件url
+  }
+
+  @override
+  String onUrl(WorkData<String> data) => 'https://api.example.com/upload';
 }

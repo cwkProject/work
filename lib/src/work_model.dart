@@ -6,37 +6,10 @@ import 'package:dio/dio.dart';
 import 'package:mime/mime.dart';
 import 'package:path/path.dart';
 
-import 'work_config.dart';
-
 /// 进度监听器
 ///
 /// [current]为当前已传输字节，[total]为总传输字节
 typedef OnProgress = void Function(int current, int total);
-
-/// Http执行器，每次调用都应该发起独立的新http请求并返回dio[Response]
-///
-/// 由[WorkRequest]生成，最终调用由框架负责
-/// 请求中的异常请正常抛出
-typedef HttpCall = Future<Response> Function();
-
-/// 网络请求生成器
-///
-/// 用于装配请求参数并生成最终的请求方法[HttpCall]
-/// [tag]为跟踪日志标签，[options]为请求所需的全部参数，返回最终的网络请求执行方法
-typedef WorkRequest = Future<HttpCall> Function(
-    String tag, WorkRequestOptions options);
-
-/// 输出日志函数
-///
-/// [tag]日志标签，[message]日志内容，[data]额外数据
-typedef WorkLogger = void Function(String tag, String? message, [Object? data]);
-
-/// 多分块提交格式
-///
-/// 上传文件时需要使用此格式，
-/// 框架负责将传入的[Map]数据自动装配成[FormData]格式，
-/// 用户也可以将自行装配的[FormData]实例作为参数
-const multipartFormData = 'multipart/form-data';
 
 /// 任务请求的全部配置信息
 class WorkRequestOptions {
@@ -66,7 +39,7 @@ class WorkRequestOptions {
   /// 通常在[Work.onFillParams]中装配并返回，此时框架会自动序列化参数，
   /// 支持[HttpMethod.get]和[HttpMethod.head]，
   /// 或者是带有请求body的方法中使用“application/x-www-form-urlencoded”或"application/json"，
-  /// [multipartFormData]等与[Map]兼容的键值对或表单格式。
+  /// [Headers.multipartFormDataContentType]等与[Map]兼容的键值对或表单格式。
   ///
   /// 支持多种格式，通常有[Map]，[String]，[List]，[Stream]等，需要与[Options.contentType]匹配，
   /// 同样可以使用自行拼装的[FormData]数据
@@ -88,12 +61,6 @@ class WorkRequestOptions {
   /// 可在[Work.onConfigOptions]中设置此属性，
   /// 此时[Work.onRequestResult]通常总是返回true
   String? downloadPath;
-
-  /// 用于指定使用的网络全局网络访问器的key
-  ///
-  /// 返回null或key不存在则表示使用默认访问器
-  /// 关联性请查看[workConfigs]
-  String? configKey;
 
   @override
   String toString() => '''request 
@@ -160,7 +127,7 @@ class HttpResponse {
 realUri: $realUri
 request headers: $requestHeaders
 success: $success; code: $statusCode
-headers: $_headersToString
+response headers: $_headersToString
 body: $_bodyToString''';
 }
 

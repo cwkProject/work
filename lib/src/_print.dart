@@ -2,7 +2,10 @@
 
 import 'dart:math';
 
-import 'work_model.dart' show WorkLogger;
+/// 输出日志函数
+///
+/// [tag]日志标签，[message]日志内容，[data]额外数据
+typedef WorkLogger = void Function(String tag, String? message, [Object? data]);
 
 /// 每次打印的最大长度
 const _logBufferSize = 800;

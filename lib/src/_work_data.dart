@@ -6,10 +6,14 @@ part of 'work_core.dart';
 ///
 /// 包含响应的全部数据，[T]类型的业务数据实例，[success]表示成功失败，
 /// [message]服务响应的消息，http响应[response]，任务正真有用的数据对象[result]。
-abstract class WorkData<T> {
-  WorkData();
+///
+/// 用于不能自己创建子类，如果需要增加额外的只读属性可以尝试用扩展方法`extension`实现。
+/// 如果需要增加可写属性，可以使用[WorkData.extra]完成目的。
+final class WorkData<T> {
+  WorkData(this.workConfig);
 
-  factory WorkData.create() => _WorkData();
+  /// [Work.onWorkConfig]
+  final WorkConfig workConfig;
 
   /// 本次任务成功失败标志
   bool _success = false;
@@ -25,7 +29,7 @@ abstract class WorkData<T> {
 
   /// http响应数据
   ///
-  /// 在[Work._onParseResponse]生命周期阶段开始出现
+  /// 在[WorkExecuteExtension._onParseResponse]生命周期阶段开始出现
   HttpResponse? _response;
 
   /// 异常类型
@@ -40,7 +44,6 @@ abstract class WorkData<T> {
   int _restartCount = 0;
 
   /// 本次任务请求是否成功
-  ///
   ///
   /// 用户接口协议约定的请求结果，
   /// 即[Work.onRequestResult]返回的结果，
@@ -88,20 +91,17 @@ abstract class WorkData<T> {
   dynamic extra;
 }
 
-/// [WorkData]实现类
-class _WorkData<T> extends WorkData<T> {}
-
 /// 任务执行专用[Future]，提供了取消功能
 ///
-/// [D]为关联的接口结果数据类型，[T]为接口响应包装类型[WorkData]
-class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
+/// [D]为关联的接口结果数据类型
+class WorkFuture<D> implements Future<WorkData<D>> {
   WorkFuture._(this._tag, this.onCanceled);
 
   /// 任务标识
   final String _tag;
 
   /// 真正的完成器
-  final _completer = Completer<T>();
+  final _completer = Completer<WorkData<D>>();
 
   /// 用户执行取消事件
   final void Function() onCanceled;
@@ -110,7 +110,7 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
   bool _isCanceled = false;
 
   /// 执行完成
-  void _complete(T data) {
+  void _complete(WorkData<D> data) {
     _completer.complete(data);
   }
 
@@ -130,36 +130,39 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
   }
 
   @override
-  Stream<T> asStream() => _completer.future.asStream();
+  Stream<WorkData<D>> asStream() => _completer.future.asStream();
 
   @override
-  Future<T> catchError(Function onError, {bool Function(Object error)? test}) =>
+  Future<WorkData<D>> catchError(Function onError,
+          {bool Function(Object error)? test}) =>
       _completer.future.catchError(onError, test: test);
 
   @override
-  Future<R> then<R>(FutureOr<R> Function(T value) onValue,
+  Future<R> then<R>(FutureOr<R> Function(WorkData<D> value) onValue,
           {Function? onError}) =>
       _completer.future.then<R>(onValue, onError: onError);
 
   @override
-  Future<T> timeout(Duration timeLimit, {FutureOr<T> Function()? onTimeout}) =>
+  Future<WorkData<D>> timeout(Duration timeLimit,
+          {FutureOr<WorkData<D>> Function()? onTimeout}) =>
       _completer.future.timeout(timeLimit, onTimeout: onTimeout);
 
   @override
-  Future<T> whenComplete(FutureOr<void> Function() action) =>
+  Future<WorkData<D>> whenComplete(FutureOr<void> Function() action) =>
       _completer.future.whenComplete(action);
 
   /// 仅当[Work]成功时，即[WorkData.success]为true时才执行[onValue]
   ///
   /// [WorkData.success]为false时返回null
-  Future<R?> thenSuccessful<R>(FutureOr<R?> Function(T value) onValue) =>
+  Future<R?> thenSuccessful<R>(
+          FutureOr<R?> Function(WorkData<D> value) onValue) =>
       _completer.future
           .then((value) => value.success ? onValue(value) : Future.value());
 
   /// 仅当[Work]失败时，即[WorkData.success]为false时才执行[onValue]
   ///
   /// [WorkData.success]为true时返回null
-  Future<R?> thenFailed<R>(FutureOr<R?> Function(T value) onValue) =>
+  Future<R?> thenFailed<R>(FutureOr<R?> Function(WorkData<D> value) onValue) =>
       _completer.future
           .then((value) => !value.success ? onValue(value) : Future.value());
 
@@ -205,7 +208,8 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
   Future<D?> resultOrThrowMessage([FutureOr<void> Function(D? value)? onDo]) =>
       _completer.future.then((value) {
         if (!value.success) {
-          return Future.error(value.message ?? '');
+          return Future.error(WorkException._(
+              _tag, value.errorType ?? WorkErrorType.other, value.message));
         }
 
         if (onDo != null) {
@@ -266,13 +270,15 @@ class WorkFuture<D, T extends WorkData<D>> implements Future<T> {
           [FutureOr<void> Function(D value)? onDo]) =>
       _completer.future.then((value) {
         if (!value.success) {
-          return Future.error(value.message ?? '');
+          return Future.error(WorkException._(
+              _tag, value.errorType ?? WorkErrorType.other, value.message));
         }
 
         final result = value.result;
 
         if (result == null) {
-          return Future.error('empty result');
+          return Future.error(
+              WorkException._(_tag, WorkErrorType.noResult, 'empty result'));
         }
 
         if (onDo != null) {

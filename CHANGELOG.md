@@ -1,3 +1,15 @@
+## [7.0.0] - 2024/9/29
+
+* BREAKING: 内核重构，与7.0.0以下版本不兼容
+* BREAKING: `Work`泛型修改为仅有结果数据类型，不需要提供`WorkData`的子类泛型
+* BREAKING: `WorkData`不能继承，额外只读属性可以自己增加扩展方法，写属性可以利用`WorkData.extra`实现
+* BREAKING: 增加`WorkDelegate`代替过去的`BaseWork`实现，现在项目中的具体接口实现可以直接继承`Work`，公共生命周期处理操作则可以在`WorkDelegate`中实现。
+* BREAKING: `WorkConfig`增加`delegate`参数，用于绑定`WorkDelegate`实例
+* BREAKING: `WorkConfig`移除`workRequest`属性，不再支持自定义内核请求实现，从此不能在前端更换实际执行请求的库，只能是Dio库
+* BREAKING: 移除`workConfigs`，`Work`增加`onWorkConfig`方法可以直接绑定其它`WorkConfig`实例
+* BREAKING: `Work`移除`onConfigKey`方法
+* BREAKING: `Work`的`onConfigOptions`变更为`onPostOptions`方法
+
 ## [6.0.2] - 2023/12/18
 
 * 重构内核实现类，不影响使用

@@ -3,16 +3,9 @@
 part of 'work_core.dart';
 
 /// [Work]执行流程扩展，提供了任务执行能力
-extension WorkLifeCycleExtension<D, T extends WorkData<D>> on Work<D, T> {
-  /// 启动任务
-  ///
-  /// 返回包含执行结果[T]的[WorkFuture]。
-  /// * [retry]为内部网络请求失败时的最大重试次数，0表示不重试，实际请求1次，1表示重试1次，实际最多请求两次，以此类推，
-  /// * [onSendProgress]为数据发送/上传进度监听器，在[HttpMethod.get]和[HttpMethod.head]中无效，
-  /// 以及设置了[WorkRequestOptions.downloadPath]的下载任务中无效，
-  /// * [onReceiveProgress]为数据接收/下载进度监听器，
-  /// * 多次调用会启动多次请求
-  WorkFuture<D, T> start({
+extension WorkExecuteExtension<D> on Work<D> {
+  /// [Work.start]的内部实现
+  WorkFuture<D> _start({
     int retry = 0,
     OnProgress? onSendProgress,
     OnProgress? onReceiveProgress,
@@ -24,14 +17,14 @@ extension WorkLifeCycleExtension<D, T extends WorkData<D>> on Work<D, T> {
 
     void Function()? onCancel;
 
-    final future = WorkFuture<D, T>._(tag, () => onCancel?.call());
+    final future = WorkFuture<D>._(tag, () => onCancel?.call());
 
     Future<void> onDo() async {
       int restart = 0;
       dynamic extra;
-      T data;
+      WorkData<D> data;
       do {
-        data = onCreateWorkData();
+        data = WorkData<D>(onWorkConfig());
         data._restartCount = restart;
         data.extra = extra;
         onCancel = () => data.options?.cancelToken.cancel();
@@ -62,7 +55,7 @@ extension WorkLifeCycleExtension<D, T extends WorkData<D>> on Work<D, T> {
   /// 返回值表示是否重新执行本次请求
   Future<bool> _onDo({
     required String tag,
-    required T data,
+    required WorkData<D> data,
     required int retry,
     OnProgress? onSendProgress,
     OnProgress? onReceiveProgress,
@@ -73,8 +66,7 @@ extension WorkLifeCycleExtension<D, T extends WorkData<D>> on Work<D, T> {
       await _onStartWork(tag, data);
 
       if (!data.fromCache) {
-        data._options =
-            await _onCreateOptions(data, onSendProgress, onReceiveProgress);
+        await _onCreateOptions(data, onSendProgress, onReceiveProgress);
         await _onDoWork(tag, retry, data);
 
         log(tag, 'onSuccessful');
@@ -134,7 +126,7 @@ extension WorkLifeCycleExtension<D, T extends WorkData<D>> on Work<D, T> {
   }
 
   /// 任务启动前置方法
-  Future<void> _onStartWork(String tag, T data) async {
+  Future<void> _onStartWork(String tag, WorkData<D> data) async {
     final check = onCheckParams(data);
     final checkResult = (check is Future<bool>) ? await check : check;
     if (!checkResult) {
@@ -176,9 +168,22 @@ extension WorkLifeCycleExtension<D, T extends WorkData<D>> on Work<D, T> {
   }
 
   /// 构建请求选项参数
-  Future<WorkRequestOptions> _onCreateOptions(
-      T data, OnProgress? onSendProgress, OnProgress? onReceiveProgress) async {
-    final options = WorkRequestOptions();
+  Future<void> _onCreateOptions(WorkData<D> data, OnProgress? onSendProgress,
+      OnProgress? onReceiveProgress) async {
+    final options = data._options = WorkRequestOptions()
+      ..onSendProgress = onSendProgress
+      ..onReceiveProgress = onReceiveProgress
+      ..url = onUrl(data)
+      ..dioOptions.method = onHttpMethod(data).name
+      ..dioOptions.contentType = onContentType(data)
+      ..dioOptions.responseType = onResponseType(data);
+
+    final headers = onHeaders(data);
+    if (headers is Future<Map<String, dynamic>?>) {
+      options.dioOptions.headers = await headers;
+    } else {
+      options.dioOptions.headers = headers;
+    }
 
     final fillParams = onFillParams(data);
     if (fillParams is Future<dynamic>) {
@@ -194,46 +199,29 @@ extension WorkLifeCycleExtension<D, T extends WorkData<D>> on Work<D, T> {
       options.queryParams = queryParams;
     }
 
-    options
-      ..onSendProgress = onSendProgress
-      ..onReceiveProgress = onReceiveProgress
-      ..dioOptions.method = onHttpMethod(data).name
-      ..configKey = onConfigKey(data)
-      ..dioOptions.contentType = onContentType(data)
-      ..dioOptions.responseType = onResponseType(data)
-      ..url = onUrl(data);
-
-    final headers = onHeaders(data);
-    if (headers is Future<Map<String, dynamic>?>) {
-      options.dioOptions.headers = await headers;
-    } else {
-      options.dioOptions.headers = headers;
-    }
-
-    final configOptions = onConfigOptions(data, options);
-
+    final configOptions = onPostOptions(data);
     if (configOptions is Future<void>) {
       await configOptions;
     }
-
-    return options;
   }
 
   /// 核心任务执行
   ///
   /// 此处为真正启动http请求的方法
-  Future<void> _onDoWork(String tag, int retry, T data) async {
-    final request = onWorkRequest(data.options!);
-
-    data._response =
-        await _onCall(tag, retry, data, await request(tag, data.options!));
+  Future<void> _onDoWork(String tag, int retry, WorkData<D> data) async {
+    data._response = await _onCall(
+      tag,
+      retry,
+      data,
+      workRequest(tag, data.workConfig.dio, data.options!),
+    );
 
     await _onParseResponse(tag, data);
   }
 
   /// 执行网络请求
   Future<HttpResponse> _onCall(
-      String tag, int retry, T data, HttpCall call) async {
+      String tag, int retry, WorkData<D> data, HttpCall call) async {
     if (retry < 0) {
       retry = 0;
     }
@@ -300,7 +288,7 @@ extension WorkLifeCycleExtension<D, T extends WorkData<D>> on Work<D, T> {
   }
 
   /// 解析响应数据
-  Future<void> _onParseResponse(String tag, T data) async {
+  Future<void> _onParseResponse(String tag, WorkData<D> data) async {
     try {
       // 提取服务执行结果
       log(tag, 'onRequestResult');

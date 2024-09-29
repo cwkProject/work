@@ -5,11 +5,11 @@ import 'package:http_parser/http_parser.dart';
 
 import 'work_model.dart';
 
-/// 用于[com.HttpMethod.upload]请求类型的数据转换
+/// 用于[Headers.multipartFormDataContentType]请求类型的数据转换
 ///
 /// [src]原始参数，返回处理后的符合dio接口的参数
-Future<FormData> convertToDio(Map<String, dynamic> src) async {
-  Future<dynamic> onConvert(dynamic value) async {
+FormData convertToDio(Map<String, dynamic> src) {
+  dynamic onConvert(dynamic value) {
     if (value is UploadFileInfo) {
       return MultipartFile.fromStream(
         () => value.stream!,
@@ -27,11 +27,9 @@ Future<FormData> convertToDio(Map<String, dynamic> src) async {
 
   for (final entry in src.entries) {
     if (entry.value is List) {
-      params[entry.key] =
-          await Stream.fromFutures(entry.value.map<Future<dynamic>>(onConvert))
-              .toList();
+      params[entry.key] = entry.value.map(onConvert).toList();
     } else {
-      params[entry.key] = await onConvert(entry.value);
+      params[entry.key] = onConvert(entry.value);
     }
   }
 

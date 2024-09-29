@@ -8,150 +8,162 @@ import 'test_works.dart';
 void main() {
   group('basic_test', () {
     setUp(() {
-      workConfig.dio.options.baseUrl = 'http://httpbin.org/';
+      debugWork = true;
+
+      workConfig = WorkConfig(
+        dio: Dio(
+          BaseOptions(
+            connectTimeout: const Duration(seconds: 10),
+            receiveTimeout: const Duration(seconds: 30),
+            sendTimeout: const Duration(seconds: 30),
+            contentType: 'application/x-www-form-urlencoded',
+            baseUrl: 'http://httpbin.org/',
+          ),
+        ),
+        delegate: WorkDelegateImp(),
+      );
     });
 
     test('get', () async {
-      final work = await SimpleGetWork('超悟空', 32).start();
+      final work = await const GetWork('超悟空', 32).start();
 
       print('work result ${work.result} message ${work.message}');
-
-      assert(work.success);
-      assert(work.errorType == null);
+      expect(work.success, isTrue);
+      expect(work.errorType, isNull);
     });
 
     test('post_form', () async {
-      final work = await SimplePostFormWork('超悟空', 32).start();
+      final work = await const PostFormWork('超悟空', 32).start();
 
       print('work result ${work.result} message ${work.message}');
-      assert(work.success);
-      assert(work.errorType == null);
+      expect(work.success, isTrue);
+      expect(work.errorType, isNull);
     });
 
     test('post_json', () async {
-      final work = await SimplePostJsonWork('超悟空', 32).start();
+      final work = await const PostJsonWork('超悟空', 32).start();
 
       print('work result ${work.result} message ${work.message}');
-      assert(work.success);
-      assert(work.errorType == null);
+      expect(work.success, isTrue);
+      expect(work.errorType, isNull);
     });
 
     test('put_with_query', () async {
-      final work = await SimplePutWithQueryWork('超悟空', 32).start();
+      final work = await const PutWithQueryWork('超悟空', 32).start();
 
       print('work result ${work.result} message ${work.message}');
-      assert(work.success);
-      assert(work.errorType == null);
+      expect(work.success, isTrue);
+      expect(work.errorType, isNull);
     });
 
     test('post_json_string', () async {
-      final work = await SimplePostJsonStringWork('超悟空', 32).start();
+      final work = await const PostJsonStringWork('超悟空', 32).start();
 
       print('work result ${work.result} message ${work.message}');
-      assert(work.success);
-      assert(work.errorType == null);
+      expect(work.success, isTrue);
+      expect(work.errorType, isNull);
     });
 
     test('retry', () async {
-      final work = await SimpleErrorWork().start(retry: 5);
+      final work = await const ErrorWork().start(retry: 5);
 
       print('work message ${work.message}');
-      assert(!work.success);
-      assert(work.errorType == WorkErrorType.response);
+      expect(work.success, isFalse);
+      expect(work.errorType, same(WorkErrorType.response));
     });
 
     test('download', () async {
       final work =
-          await SimpleLoadWork().start(onReceiveProgress: (current, total) {
+          await const DownloadWork().start(onReceiveProgress: (current, total) {
         print(current * 100 ~/ total);
       });
 
       print('work result ${work.result?.length} message ${work.message}');
-      assert(work.success);
-      assert(work.errorType == null);
+      expect(work.success, isTrue);
+      expect(work.errorType, isNull);
     });
 
     test('upload', () async {
-      final download = await SimpleLoadWork().start();
+      final download = await const DownloadWork().start();
 
-      final work = await SimpleUploadWork(download.result!,
+      final work = await UploadWork(download.result!,
               name: 'test.webp', mimeType: 'image/webp')
           .start(onSendProgress: (current, total) {
         print(current * 100 ~/ total);
       });
 
       print('work message ${work.message}');
-      assert(work.success);
-      assert(work.errorType == null);
+      expect(work.success, isTrue);
+      expect(work.errorType, isNull);
     });
 
     test('cancel', () async {
-      final work = DelayWork('超悟空', 32, 5).start();
+      final work = const DelayWork('超悟空', 32, 5).start();
 
       Timer(Duration(seconds: 1), () {
         work.cancel();
       });
 
-      final date = await work;
+      final data = await work;
 
-      print('work message ${date.message}');
-      assert(!date.success);
-      assert(date.errorType == WorkErrorType.cancel);
+      print('work message ${data.message}');
+      expect(data.success, isFalse);
+      expect(data.errorType, same(WorkErrorType.cancel));
     });
 
     test('failed', () async {
-      final work = await SimpleRequestFailedWork().start();
+      final work = await const RequestFailedWork().start();
 
-      assert(!work.success);
-      assert(work.errorType == WorkErrorType.task);
+      expect(work.success, isFalse);
+      expect(work.errorType, same(WorkErrorType.task));
     });
 
     test('parseFailed', () async {
-      final work = await SimpleParseFailedWork('测试解析错误').start();
+      final work = await const ParseFailedWork('测试解析错误').start();
 
-      assert(!work.success);
-      assert(work.errorType == WorkErrorType.parse);
+      expect(work.success, isFalse);
+      expect(work.errorType, same(WorkErrorType.parse));
     });
 
     test('cache', () async {
-      var work = await CacheableWork(1, '超悟空', 32).start();
+      var work = await const CacheableWork(1, '超悟空', 32).start();
 
       print('work result ${work.result} message ${work.message}');
-      assert(work.success);
-      assert(work.errorType == null);
-      assert(!work.fromCache);
+      expect(work.success, isTrue);
+      expect(work.errorType, isNull);
+      expect(work.fromCache, isFalse);
 
-      work = await CacheableWork(1, '超悟空', 32).start();
+      work = await const CacheableWork(1, '超悟空', 32).start();
 
       print('work result ${work.result} message ${work.message}');
-      assert(work.success);
-      assert(work.errorType == null);
-      assert(work.fromCache);
+      expect(work.success, isTrue);
+      expect(work.errorType, isNull);
+      expect(work.fromCache, isTrue);
     });
 
     test('cacheByFailed', () async {
-      var work = await CacheableByFailedWork(2, '超悟空', 32).start();
+      var work = await const CacheableByFailedWork(2, '超悟空', 32).start();
 
       print('work result ${work.result} message ${work.message}');
-      assert(work.success);
-      assert(work.errorType == null);
-      assert(!work.fromCache);
+      expect(work.success, isTrue);
+      expect(work.errorType, isNull);
+      expect(work.fromCache, isFalse);
 
-      work = await CacheableByFailedWork(2, '超悟空', 32).start();
+      work = await const CacheableByFailedWork(2, '超悟空', 32).start();
 
       print('work result ${work.result} message ${work.message}');
-      assert(work.success);
-      assert(work.restartCount == 1);
-      assert(work.errorType == null);
-      assert(work.fromCache);
+      expect(work.success, isTrue);
+      expect(work.errorType, isNull);
+      expect(work.fromCache, isTrue);
+      expect(work.restartCount, equals(1));
     });
 
     test('restart', () async {
-      final work = await RestartWork('超悟空', 32).start();
+      final work = await const RestartWork('超悟空', 32).start();
 
       print('work result ${work.result} message ${work.message}');
-      assert(work.success);
-      assert(work.errorType == null);
+      expect(work.success, isTrue);
+      expect(work.errorType, isNull);
     });
   });
 }
